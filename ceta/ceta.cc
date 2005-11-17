@@ -1,21 +1,26 @@
 /* Copyright 2005 Joe Hendrix
- * 
+ *
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+/**
+ * \brief
+ * Implementation for functions declared in ceta.hh
+ */
 #include "ceta.hh"
 
+#include <deque>
 #include <functional>
 #include <list>
 #include <stdexcept>
@@ -28,6 +33,7 @@
 
 #include "bi_graph.hh"
 #include "closure.hh"
+#include "learncfg.hh"
 #include "parikh.hh"
 #include "sls.hh"
 #include "writer.hh"
@@ -45,9 +51,7 @@ namespace ceta {
     static void sig_error(const std::string& msg) NO_RETURN;
 
     static void sig_error(const std::string& msg) {
-//      cerr << msg << endl;
-//      *(static_cast<int*>(NULL)) = 2;
-      throw logic_error(msg);
+      throw std::logic_error(msg);
     }
 
     /**
@@ -112,14 +116,14 @@ namespace ceta {
       if (!member(theory, elt))
         sig_error(name(elt) + " is not in theory.");
     }
-    
+
     /** Checks that two theories are equal. */
     static
     void check_equal(const theory_t& x, const theory_t& y) {
       if (x != y)
         sig_error("Theories are not equal.");
     }
-  
+
     /**
      * An adaptable binary predicate that returns true if the two ops it is
      * passed are equal and have the same equational axioms in each theory.
@@ -144,8 +148,8 @@ namespace ceta {
     };
 
     /**
-     * A finite parameterized automorphism class.  An automorphism is a 
-     * function whose domain and range are equivalent.  In this case, the 
+     * A finite parameterized automorphism class.  An automorphism is a
+     * function whose domain and range are equivalent.  In this case, the
      * automophism only maps a finite number of objects to something other
      * than themselves.
      */
@@ -155,7 +159,7 @@ namespace ceta {
       /** Type of constant bidirectional iterator over pairs of elements. */
       typedef typename std::map<Element, Element>::const_iterator iterator;
       typedef std::pair<Element, Element> pair_type;
-  
+
       iterator begin() const {
         return mapping_.begin();
       }
@@ -163,7 +167,7 @@ namespace ceta {
       iterator end() const {
         return mapping_.end();
       }
-      
+
       /** Returns value of e in morphism. */
       const Element& operator()(const Element& e) const {
         iterator i = mapping_.find(e);
@@ -187,7 +191,7 @@ namespace ceta {
     };
 
     typedef automorphism_t<state_t> state_subst_t;
-  
+
     /**
      * Wraps a substitution in a unary functor that takes a state as input,
      * generates a new state, and appends a binding to the substitution from
@@ -199,7 +203,7 @@ namespace ceta {
       binding_appender(state_subst_t* subst)
         : subst_(subst) {
       }
-      /** 
+      /**
        * Creates new state, and appends binding from state to new state to
        * substitution.
        */
@@ -211,8 +215,8 @@ namespace ceta {
       /** Pointer to substitution. */
       state_subst_t* subst_;
     };
-  
-    /** 
+
+    /**
      * Constructs a state substitution mapping to rename states that appear
      * in both automata to fresh states.
      */
@@ -221,14 +225,14 @@ namespace ceta {
       typedef theory_t::kind_iterator kind_iter;
       typedef boost::function_output_iterator<binding_appender>
               appender_iter;
-  
+
       std::set_intersection(states_begin(x), states_end(x),
                             states_begin(y), states_end(y),
                             appender_iter(&result));
       return result;
     }
-  
-    /** 
+
+    /**
      * Visitor to components of a state predicate to determine if set is a
      * model of predicate.
      */
@@ -262,8 +266,8 @@ namespace ceta {
     /** Enumeration giving operator priorities in predicate. */
     enum priority_t
             { OR_PRIORITY = 1, AND_PRIORITY = 2, DEFAULT_PRIORITY = 3 };
-    
-    /** 
+
+    /**
      * Visitor to components of state predicate to determine priority of
      * top operator of predicate.
      */
@@ -317,7 +321,11 @@ namespace ceta {
         print(pred.rhs, OR_PRIORITY);
       }
     private:
-      void print(const state_predicate_t& pred, 
+      /**
+       * Prints state predicate adding parenthesis based on whether the
+       * outer operator's priority exceed's the predicate's priority.
+       */
+      void print(const state_predicate_t& pred,
                  priority_t parent_priority) const {
         priority_t pred_priority = priority(pred);
         if (pred_priority < parent_priority) *o_ << "(";
@@ -329,7 +337,7 @@ namespace ceta {
 
     static
     void check_member(const ta_t& ta, const state_t& state) {
-      if (!member(ta, state)) 
+      if (!member(ta, state))
         sig_error("State " + name(state) + " is not a member of automaton.");
     }
 
@@ -387,7 +395,7 @@ namespace ceta {
         }
       }
       result_type operator()(const not_predicate_t& pred) const {
-        result_type arg_result 
+        result_type arg_result
           = apply_visitor(rename_visitor(subst_, pred.arg), pred.arg);
         if (arg_result.second) {
           return result_type(! arg_result.first, true);
@@ -396,9 +404,9 @@ namespace ceta {
         }
       }
       result_type operator()(const and_predicate_t& pred) const {
-        result_type lhs_result 
+        result_type lhs_result
           = apply_visitor(rename_visitor(subst_, pred.lhs), pred.lhs);
-        result_type rhs_result 
+        result_type rhs_result
           = apply_visitor(rename_visitor(subst_, pred.lhs), pred.rhs);
         if (lhs_result.second || rhs_result.second) {
           return result_type(lhs_result.first & rhs_result.first, true);
@@ -407,9 +415,9 @@ namespace ceta {
         }
       }
       result_type operator()(const or_predicate_t& pred) const {
-        result_type lhs_result 
+        result_type lhs_result
           = apply_visitor(rename_visitor(subst_, pred.lhs), pred.lhs);
-        result_type rhs_result 
+        result_type rhs_result
           = apply_visitor(rename_visitor(subst_, pred.lhs), pred.rhs);
         if (lhs_result.second || rhs_result.second) {
           return result_type(lhs_result.first | rhs_result.first, true);
@@ -421,7 +429,7 @@ namespace ceta {
       const state_subst_t* subst_;
       const state_predicate_t context_;
     };
- 
+
     /**
      * Returns a copy of a state predicate in which each state has been
      * changed using the substitution.
@@ -435,47 +443,55 @@ namespace ceta {
     /** Mapping from operator to axiom set. */
     typedef map<op_t, axiom_set_t> axiom_map_t;
     /**
-     * Unary function which writes a declaration of its argument to the 
+     * Unary function which writes a declaration of its argument to the
      * provided output stream.
      */
     class decl_writer {
     public:
       typedef void result_type;
 
-      decl_writer(ostream* o)
-        : o_(o) {
+      /** Constructs a decl_writer that writes declarations to o. */
+      decl_writer(ostream* o, const theory_t* theory)
+        : o_(o),
+          theory_(theory) {
       }
+      /** Writes kind declararation to output stream. */
       void operator()(const kind_t& kind) {
-        *o_ << "kind " << name(kind) << endl;
+        *o_ << "kind " << name(kind) << ";" << endl;
       }
       void operator()(const op_t& op) {
         *o_ << "op " << name(op) << " : "
-            << make_range_writer(inputs_begin(op), inputs_end(op)) 
-            << " -> " << output(op) << endl;
+            << make_range_writer(inputs_begin(op), inputs_end(op))
+            << " -> " << output(op)
+            << " [" << axioms(*theory_, op) << "];" << endl;
       }
       void operator()(const state_t& state) {
-        *o_ << "state " << name(state) << " -> " << kind(state) << endl;
+        *o_ << "state " << name(state)
+            << " -> " << kind(state) << ";" << endl;
       }
       void operator()(const state_predicate_t& pred) {
-        *o_ << "accept " << kind(pred) << " : " << pred << endl;
+        *o_ << "accept " << kind(pred) << " : " << pred << ";" << endl;
       }
       void operator()(const erule_t& erule) {
-        *o_ << "rl " << lhs(erule) << " -> " << rhs(erule) << endl;
+        *o_ << "rl " << lhs(erule) << " -> " << rhs(erule) << ";" << endl;
       }
       void operator()(const rule_t& rule) {
         *o_ << "rl " << op(rule);
         if (lhs_states_begin(rule) != lhs_states_end(rule)) {
-          *o_ << "(" 
-            << make_range_writer(lhs_states_begin(rule),
-                                 lhs_states_end(rule))
-            << ")";
+          *o_ << "("
+              << make_range_writer(lhs_states_begin(rule),
+                                   lhs_states_end(rule),
+                                   ", ")
+              << ")";
         }
+        *o_ << " -> " << rhs(rule) << ";" << endl;
       }
     private:
       ostream* o_;
+      const theory_t* theory_;
     };
 
-    /** 
+    /**
      * Creates new erule by applying substitution to lhs and rhs of existing
      * erule.
      */
@@ -483,7 +499,7 @@ namespace ceta {
     const erule_t apply(const state_subst_t& subst, const erule_t& erule) {
       return erule_t(subst(lhs(erule)), subst(rhs(erule)));
     }
-  
+
     /**
      * Creates new rule by applying substitution to lhs and rhs of existing
      * rule.
@@ -491,7 +507,7 @@ namespace ceta {
     static
     const rule_t apply(const state_subst_t& subst, const rule_t& rule) {
       typedef const state_t& state_ref;
-      typedef boost::transform_iterator<state_subst_t, 
+      typedef boost::transform_iterator<state_subst_t,
                                         rule_t::lhs_state_iterator,
                                         state_ref>
               trans_iter;
@@ -499,24 +515,24 @@ namespace ceta {
       trans_iter end(lhs_states_end(rule), subst);
       return rule_t(op(rule), begin, end, subst(rhs(rule)));
     }
-  
+
     /** For each iterator i in [start end), adds fn(i) to ta. */
     template<typename I, typename AddFn, typename Fn>
     static void add_range(I start, I end, AddFn add_fn, ta_t& ta, Fn fn) {
       for (I i = start; i != end; ++i)
         add_fn(ta, fn(*i));
-    } 
+    }
 
     /**
-     * Checks that arguments to an operator have the correct kind for the 
+     * Checks that arguments to an operator have the correct kind for the
      * operator's inputs.  Since binary operators may be associative, they
      * are allowed to have any number of inputs greater than 2 that match
      * the kind of the binary operator.  Other operators may only have a
      * number of arguments equal to their input count and the kind of each
      * argument must match the corresponding input kind.  This operation
-     * has been made generic so that it works with both rules and terms.  
+     * has been made generic so that it works with both rules and terms.
      * Each InputIterator must point to a value v for which kind(v) returns
-     * a kind.  
+     * a kind.
      *
      * \param op The operator we are checking the inputs of.
      * \param first An input iterator that points to the first argument for
@@ -562,156 +578,39 @@ namespace ceta {
       }
     }
 
-    typedef std::pair<op_t, size_t> context_t;
-
-    static inline
-    context_t make_context(const op_t& op, size_t pos) {
-      return make_pair(op, pos);
-    }
-
-    typedef vector< pair< term_t, set<state_t> > > set_vector_t;
-
-    class reachable_states_t {
-    public:
-      typedef set_vector_t::const_iterator iterator;
-
-      /** Construct an empty set of reachable states for automaton. */
-      reachable_states_t(const ta_t& ta)
-        :ta_(ta) {
-      }
-
-
-      /** Returns true if op is identity for more than one binary symbol. */
-      bool is_multiple_identity(const theory_t& theory, const op_t& op) {
-        theory_t::op_iterator begin = id_contexts_begin(theory, op);
-        theory_t::op_iterator end = id_contexts_end(theory, op);
-        if (begin == end)
-          return false;
-        ++begin;
-        return (begin != end);
-      }
-
-      void add(const term_t& term, const set<state_t>& states) {
-        kind_t k = kind(term);
-        set_map_t::iterator i = set_map_.find(states);
-        op_t top_op = op(term);
-        // If we have already added this state set
-        if (i != set_map_.end()) {
-          // Check to see if previous term was potentially invallid.
-          if (i->second && (top_op != *i->second)) {
-            op_t new_op = *i->second;
-            const axiom_set_t& top_ax = axioms(theory(ta_), top_op);
-            const axiom_set_t& new_ax = axioms(theory(ta_), new_op);
-
-            const boost::optional<op_t>& top_id = id_symbol(top_ax);
-            const boost::optional<op_t>& new_id = id_symbol(new_ax);
-
-            // If top_op is associative and new_op is its identity.
-            if (is_assoc(top_ax) && top_id && (new_op == *top_id)) {
-              // Do nothing since top_op current term is usable in any
-              // context the new term is usable in.
-            // If new_op is associative and top_op is its identity.
-            } else if (is_assoc(new_ax) && new_id && (top_op == *new_id)) {
-              // If top_op is the identity for another symbol, then this
-              // state set will potentially allow reaching more states
-              // through new term, so we use it.
-              if (is_multiple_identity(theory(ta_), top_op)) {
-                vector_map_[k].push_back(make_pair(term, states));
-                i->second = new_op;
-              }
-            } else {
-              // Between two terms, set must be valid in every context
-              vector_map_[k].push_back(make_pair(term, states));
-              i->second = boost::none;
-            }
-          }
-        } else {
-          vector_map_[k].push_back(make_pair(term, states));
-          try {
-            boost::optional<op_t> set_op;
-            bool potentially_invalid = is_assoc(axioms(theory(ta_), top_op))
-                                        || is_identity(theory(ta_), top_op);
-            if (potentially_invalid)
-              set_op = op(term);
-            set_map_.insert(make_pair(states, set_op));
-            // Check to see if added is a counter example.
-            if (models(predicate(ta_, k), states))
-              throw test_result_t(term, states);
-          } catch (...) {
-            set_map_.erase(states);
-            vector_map_[k].pop_back();
-            throw;
-          }
-        }
-      }
-
-      /**
-       * Return a random access iterator pointing to first set of reachable
-       * state sets for kind.
-       */
-      iterator begin(kind_t k) const {
-        return set_vector(k).begin();
-      }
-
-      /**
-       * Return a random access iterator pointing one past the last set of
-       * reachable state sets for kind.
-       */
-      iterator end(kind_t k) const {
-        return set_vector(k).end();
-      }
-    private:
-      typedef map<set<state_t>, boost::optional<op_t> > set_map_t;
-      typedef map<kind_t, set_vector_t> vector_map_t; 
-      const set_vector_t& set_vector(kind_t k) const {
-        vector_map_t::const_iterator i = vector_map_.find(k);
-        if (i != vector_map_.end()) {
-          return i->second;
-        } else {
-          static const set_vector_t empty_vector;
-          return empty_vector;
-        }
-      }
-
-      const ta_t ta_;
-      set_map_t set_map_;
-      vector_map_t vector_map_;
-    };
-
-    size_t state_count(const reachable_states_t& states, kind_t k) {
-      return std::distance(states.begin(k), states.end(k));
-    }
-
     /**
      * Stores the reachable states intersected with the a subset of the
      * states.
      */
     class reachable_image_t {
     public:
+      typedef vector< pair< term_t, set<state_t> > > set_vector_t;
       typedef set_vector_t::const_iterator iterator;
-        
-      reachable_image_t(const set<op_t>& bad_ops, 
+
+      reachable_image_t(const set<op_t>& bad_ops,
                         const set<state_t>& allowed_states)
         : bad_ops_(bad_ops),
           allowed_states_(allowed_states) {
       }
-    
+
       void add(const pair< term_t, set<state_t> >& new_pair) {
         add(new_pair.first, new_pair.second);
       }
 
-      void add(const term_t& term, const set<state_t>& states) {
+      bool add(const term_t& term, const set<state_t>& states) {
         // Check that this term is in valid context.
-        if (bad_ops_.count(op(term)) == 0) {
-          /** Compute intersection of set and allowed_states. */
-          set<state_t> subset;
-          set_intersection(allowed_states_.begin(), allowed_states_.end(),
-                           states.begin(), states.end(),
-                           inserter(subset, subset.begin()));
-          bool added = set_image_.insert(subset).second;
-          if (added)
-            set_vector_.push_back(make_pair(term, subset));
-        }
+        if (bad_ops_.count(op(term)) > 0)
+          return false;
+
+        // Compute intersection of set and allowed_states.
+        set<state_t> subset;
+        set_intersection(allowed_states_.begin(), allowed_states_.end(),
+                         states.begin(), states.end(),
+                         inserter(subset, subset.begin()));
+        bool result = set_image_.insert(subset).second;
+        if (result)
+          set_vector_.push_back(make_pair(term, subset));
+        return result;
       }
 
       const set<state_t>& states() const {
@@ -734,7 +633,7 @@ namespace ceta {
       /** The set of states that are allowed to be in a reachable set. */
       set<state_t> allowed_states_;
       /**
-       * The set of sets of states that are known to be reachable 
+       * The set of sets of states that are known to be reachable
        * intersected with the states in rule_states.
        */
       set< set<state_t> > set_image_;
@@ -744,40 +643,64 @@ namespace ceta {
        */
       set_vector_t set_vector_;
     };
+
+    /** Returns number of state sets added to image. */
     size_t state_count(const reachable_image_t& image) {
       return std::distance(image.begin(), image.end());
     }
-      
+
+    /** Returns last term and set added to image. */
+    const std::pair<term_t, std::set<state_t> >&
+    back(const reachable_image_t& image) {
+      reachable_image_t::iterator i = image.end(); --i;
+      return *i;
+    }
 
     class op_explorer {
     public:
       op_explorer(const theory_t& theory,
                   const epsilon_closure_t& closure,
-                  const op_t& op,
-                  const vector<rule_t>& rules,
-                  reachable_states_t& reachable_states)
+                  const op_t& op)
         : theory_(theory),
           closure_(&closure),
-          op_(op),
-          rules_(&rules),
-          reachable_states_(&reachable_states) {
+          op_(op) {
       }
+
+      virtual ~op_explorer() {
+      }
+
       const op_t& op() {
         return op_;
       }
-      virtual ~op_explorer() {
-      }
-      virtual void explore() = 0;
+
+      /** Adds reachable state to op explorer. */
+      virtual
+      void add_reachable(const term_t& term,
+                         const std::set<state_t>& set) = 0;
+
+      /** Explore from current states. */
+      virtual void explore(void) = 0;
+
+      /** Returns true if this explorer has completely explored states. */
+      virtual bool complete(void) const = 0;
+
+      /** Returns true if this explorer has a new reachable state. */
+      virtual bool has_next(void) const = 0;
+
+      /** Returns next reachable set of states found. */
+      virtual const std::set<state_t>& next_set(void) const = 0;
+
+      /** Returns next reachable term found. */
+      virtual const term_t next_term(void) const = 0;
+
+      /** Pop next reachable pair from queue. */
+      virtual void pop_next(void) = 0;
     protected:
       const theory_t theory_;
       /** Epsilon closure for automaton. */
       const epsilon_closure_t* closure_;
       /** Operator for explorer. */
       const op_t op_;
-      /** Rules for operator. */
-      const vector<rule_t>* rules_;
-      /** Pointer to current set of reachable states. */
-      reachable_states_t* reachable_states_;
     };
 
     /** Returns bad operators for axioms of a operator. */
@@ -785,7 +708,7 @@ namespace ceta {
                             const axiom_set_t& axioms,
                             size_t pos = 0) {
       set<op_t> result;
-       if (is_assoc(axioms))
+      if (is_assoc(axioms))
         result.insert(op);
       id_type_t type = id_type(axioms);
       if ((type == id_left) && (pos == 0) ||
@@ -846,7 +769,7 @@ namespace ceta {
         list.add(*i);
     }
 
-    /** 
+    /**
      * A triple containing three iterators that defines a range that is
      * processed by some incremental algorithm.  The range is from
      * [begin end), but there is an additional pointer to an iterator in the
@@ -860,7 +783,7 @@ namespace ceta {
     public:
       typedef I iterator;
 
-      incremental_range(I begin, I begin_new, I end) 
+      incremental_range(I begin, I begin_new, I end)
         : begin_(begin),
           begin_new_(begin_new),
           end_(end) {
@@ -890,11 +813,11 @@ namespace ceta {
      * combinations.
      */
     template<typename I, typename UnaryPredicate>
-    void new_combinations(I first, I last, UnaryPredicate p) {
+    void new_combinations(I first, I last, UnaryPredicate& p) {
       // Get index of last column with unprocessed values.
       I last_new_range = last;
       for (I i = first; i != last; ++i) {
-        if (i->begin_new() != i->end()) 
+        if (i->begin_new() != i->end())
           last_new_range = i;
       }
       // If there are no ranges with new inputs, then return
@@ -904,15 +827,20 @@ namespace ceta {
       typedef typename iterator_traits<I>::value_type::iterator
               element_iterator;
 
-      vector<element_iterator> inputs(std::distance(first, last));
-      
+      size_t input_count = std::distance(first, last);
+      vector<element_iterator> inputs;
+      inputs.reserve(input_count);
+      for (I i = first; i != last; ++i)
+        inputs.push_back(i->begin());
+
+
       typedef typename vector<element_iterator>::const_iterator
               element_vector_const_iter;
       typedef typename vector<element_iterator>::iterator
               element_vector_iter;
       // Points to last input argument.
       element_vector_const_iter last_input = inputs.end() - 1;
-      
+
       // Points to last assigned input.
       element_vector_iter cur_input = inputs.begin();
       // Stores number of iterators in inputs that point to new value.
@@ -961,9 +889,10 @@ namespace ceta {
       free_explorer(const theory_t& theory,
                     const epsilon_closure_t& closure,
                     const op_t& op,
-                    const vector<rule_t>& rules,
-                    reachable_states_t& reachable_states)
-        : op_explorer(theory, closure, op, rules, reachable_states),
+                    const vector<rule_t>& rules)
+        : op_explorer(theory, closure, op),
+          complete_(true),
+          rules_(&rules),
           processed_counts_(input_count(op), 0) {
         op_t::input_iterator end = inputs_end(op);
         const axiom_set_t& op_axioms = axioms(theory, op);
@@ -976,35 +905,62 @@ namespace ceta {
         }
       }
 
-      virtual void explore() {
+      void add_reachable(const term_t& term,
+                         const std::set<state_t>& set) {
+        for (size_t i = 0; i != input_count(op_); ++i) {
+          if (kind(term) == input(op_, i)) {
+            if (reachable_images_[i].add(term, set))
+              complete_ = false;
+          }
+        }
+      }
+
+      void explore() {
         typedef reachable_image_t::iterator image_iter;
         // Range for each input.
         vector< incremental_range<image_iter> > ranges;
         ranges.reserve(input_count(op_));
-        // New processed count for each input
-        vector<size_t> new_processed_counts;
-        new_processed_counts.reserve(input_count(op_));
-        // Update image for each input
+        // Construct each range.
         for (size_t i = 0; i != input_count(op_); ++i) {
-          reachable_image_t& image = reachable_images_[i];
-          kind_t k = input(op_, i);
-
-          size_t old_size = state_count(image);
-          // Add new reachable states for kind of input to image for input
-          add_each(reachable_states_->begin(k) + processed_counts_[i],
-                   reachable_states_->end(k),
-                   image);
+          const reachable_image_t& image = reachable_images_[i];
+          size_t old_size = processed_counts_[i];
           // Add range for input
           ranges.push_back(incremental_range<image_iter>(
                      image.begin(), image.begin() + old_size, image.end()));
-          // Update processed counts
-          new_processed_counts.push_back(state_count(*reachable_states_, k));
         }
-        
-        // Explore all new combinations 
+        // Explore all new combinations
         new_combinations(ranges.begin(), ranges.end(), *this);
         // Update processed counts
-        processed_counts_ = new_processed_counts;
+        for (size_t i = 0; i != input_count(op_); ++i) {
+          const reachable_image_t& image = reachable_images_[i];
+          processed_counts_[i] = state_count(image);
+        }
+        complete_ = true;
+      }
+
+      /** Returns true if this explorer has completely explored states. */
+      virtual bool complete(void) const {
+        return complete_;
+      }
+
+      /** Returns true if this explorer has a new reachable state. */
+      bool has_next(void) const {
+        return !pending_.empty();
+      }
+
+      /** Returns next reachable term found. */
+      const term_t next_term(void) const {
+        return pending_.front().first;
+      }
+
+      /** Returns next reachable set of states found. */
+      const std::set<state_t>& next_set(void) const {
+        return pending_.front().second;
+      }
+
+      /** Pop next reachable pair from queue. */
+      void pop_next(void) {
+        pending_.pop_front();
       }
 
       /** Add reachable states for inputs to reachables_states_ */
@@ -1023,11 +979,11 @@ namespace ceta {
                 input_iter;
         for (input_iter i = inputs.begin(); i != inputs.end(); ++i)
           subterms.push_back((*i)->first);
-        reachable_states_->add(term_t(op_, subterms.begin(), subterms.end()),
-                               states);
+        term_t term(op_, subterms.begin(), subterms.end());
+        pending_.push_back(reachable_t(term, states));
       }
     private:
-      bool should_accept(const rule_t& rule, 
+      bool should_accept(const rule_t& rule,
                          const vector<reachable_image_t::iterator>& inputs) {
         typedef rule_t::lhs_state_iterator state_iter;
         typedef vector<reachable_image_t::iterator>::const_iterator
@@ -1045,16 +1001,21 @@ namespace ceta {
         }
         return true;
       }
-      /** 
-       * The number of state sets in reachable_states_ that we have processed
-       * for each input.
-       */
-      vector<size_t> processed_counts_;
-      /** 
+      typedef std::pair<term_t, std::set<state_t> > reachable_t;
+
+      /** Indicates if explorer is complete. */
+      bool complete_;
+      /** Rules for operator. */
+      const vector<rule_t>* rules_;
+      /**
        * The reachable states for each input intersected with the states
        * that are used by that input.
        */
       vector<reachable_image_t> reachable_images_;
+      /** The number of state sets in each image that have been processed. */
+      vector<size_t> processed_counts_;
+      /** Queue of reachable states that have not been returned. */
+      std::deque<reachable_t> pending_;
     };
 
     class comm_explorer : public op_explorer {
@@ -1062,26 +1023,26 @@ namespace ceta {
       comm_explorer(const theory_t& theory,
                     const epsilon_closure_t& closure,
                     const op_t& op,
-                    const vector<rule_t>& rules,
-                    reachable_states_t& reachable_states)
-        : op_explorer(theory, closure, op, rules, reachable_states),
-          processed_count_(0),
+                    const vector<rule_t>& rules)
+        : op_explorer(theory, closure, op),
+          rules_(&rules),
           image_(bad_ops(op, axioms(theory, op)),
-                 lhs_states(rules.begin(), rules.end())) {
+                 lhs_states(rules.begin(), rules.end())),
+          processed_count_(0) {
       }
 
-      virtual void explore() {
+      void add_reachable(const term_t& term,
+                         const std::set<state_t>& set) {
+        if (kind(term) == output(op_))
+          image_.add(term, set);
+      }
+
+      void explore(void) {
         typedef reachable_image_t::iterator image_iter;
         kind_t k = output(op_);
-        size_t old_size = state_count(image_);
-        add_each(reachable_states_->begin(k) + processed_count_,
-                 reachable_states_->end(k),
-                 image_);
-        size_t new_processed_count = state_count(*reachable_states_, k);
-
-        // Explore all new combinations 
+        // Explore all new combinations
         image_iter img_begin     = image_.begin();
-        image_iter img_new_begin = image_.begin() + old_size;
+        image_iter img_new_begin = image_.begin() + processed_count_;
         image_iter img_end       = image_.end();
         // For each new state in image
         for (image_iter i = img_new_begin; i != img_end; ++i) {
@@ -1091,12 +1052,38 @@ namespace ceta {
           }
         }
         // Update processed counts
-        processed_count_ = new_processed_count;
+        processed_count_ = state_count(image_);
+      }
+
+      /** Returns true if this explorer has completely explored states. */
+      virtual bool complete(void) const {
+        return (processed_count_ == state_count(image_));
+      }
+
+      /** Returns true if this explorer has a new reachable state. */
+      bool has_next(void) const {
+        return !pending_.empty();
+      }
+
+      /** Returns next reachable term found. */
+      const term_t next_term(void) const {
+        return pending_.front().first;
+      }
+
+      /** Returns next reachable set of states found. */
+      const std::set<state_t>& next_set(void) const {
+        return pending_.front().second;
+      }
+
+      /** Pop next reachable pair from queue. */
+      void pop_next(void) {
+        pending_.pop_front();
       }
     private:
-      typedef pair< term_t, set<state_t> > reachable_pair;
+      typedef std::pair<term_t, std::set<state_t> > reachable_t;
+
       /** Add reachable pair from x and y to reachable states. */
-      void explore(const reachable_pair& x, const reachable_pair& y) {
+      void explore(const reachable_t& x, const reachable_t& y) {
         set<state_t> states;
         typedef vector<rule_t>::const_iterator rule_iter;
         for (rule_iter i = rules_->begin(); i != rules_->end(); ++i) {
@@ -1106,8 +1093,8 @@ namespace ceta {
           }
         }
         const term_t subterms[] = { x.first, y.first };
-        reachable_states_->add(term_t(op_, subterms, subterms + 2),
-                               states);
+        term_t term(op_, subterms, subterms + 2);
+        pending_.push_back(reachable_t(term, states));
       }
 
       bool should_accept(const rule_t& rule, const set<state_t>& x,
@@ -1117,113 +1104,202 @@ namespace ceta {
         return (x.count(lhs0) > 0) && (y.count(lhs1) > 0)
             || (x.count(lhs1) > 0) && (y.count(lhs0) > 0);
       }
-
-      /** 
-       * The number of state sets in reachable_states_ that we have
-       * processed.
-       */
-      size_t processed_count_;
-      /** 
+      /** Rules for operator. */
+      const vector<rule_t>* rules_;
+      /**
        * The reachable states intersected with the states that appear on
        * the left-hand-side of rule for operator.
        */
       reachable_image_t image_;
+      /** Number of state sets in image_ that we have explored. */
+      size_t processed_count_;
+      /** Queue of reachable states that have not been returned. */
+      std::deque<reachable_t> pending_;
     };
+
 
     class assoc_explorer : public op_explorer {
     public:
       assoc_explorer(const theory_t& theory,
                      const epsilon_closure_t& closure,
                      const op_t& op,
-                     const vector<rule_t>& rules,
-                     reachable_states_t& reachable_states)
-        : op_explorer(theory, closure, op, rules, reachable_states) {
-        sig_error("Cannot test purely associative ops");
+                     const vector<rule_t>& rules)
+        : op_explorer(theory, closure, op),
+          image_(bad_ops(op, axioms(theory, op)),
+                 lhs_states(rules.begin(), rules.end())),
+          explorer_(make_explorer(closure, rules)) {
       }
-      virtual void explore() {
-        // Do nothing
+
+      /** Add reachable term and set to explorer. */
+      void add_reachable(const term_t& term, const std::set<state_t>& set) {
+        if (kind(term) == output(op_)) {
+          bool added = image_.add(term, set);
+          if (added) {
+            const std::set<state_t>& nset = back(image_).second;
+            size_t last_index = state_count(image_) - 1;
+            explorer_.add_terminal(last_index, nset.begin(), nset.end());
+          }
+        }
       }
+
+      void explore() {
+        // Maximum number of times to call work when exploring.
+        const size_t max_work_count = 40;
+        size_t i = 0;
+        //cerr << "Start working: " << op_ << endl;
+        while (!explorer_.complete()
+            && !explorer_.has_reachable()
+            && (i < max_work_count)) {
+          explorer_.work();
+          ++i;
+        }
+        //cerr << "Stop working: " << op_ << endl;
+      }
+
+      /** Returns true if this explorer has completely explored states. */
+      virtual bool complete(void) const {
+        return explorer_.complete();
+      }
+
+      /** Returns true if this explorer has a new reachable state. */
+      bool has_next(void) const {
+        return explorer_.has_reachable();
+      }
+
+      /** Returns next reachable term found. */
+      const term_t next_term(void) const {
+        const std::vector<size_t>& next_string = explorer_.string();
+
+        std::vector<term_t> subterms;
+        subterms.reserve(next_string.size());
+        // Build term from string.
+        typedef std::vector<size_t>::const_iterator iter;
+        for (iter i = next_string.begin(); i != next_string.end(); ++i) {
+          const term_t& term = (image_.begin() + *i)->first;
+          subterms.push_back(term);
+        }
+        return term_t(op_, subterms.begin(), subterms.end());
+      }
+
+      /** Returns next reachable set of states found. */
+      const std::set<state_t>& next_set(void) const {
+        return explorer_.reachable();
+      }
+
+      /** Pop next reachable pair from queue. */
+      void pop_next(void) {
+        explorer_.pop_reachable();
+      }
+    private:
+      /**
+       * Constructs a CFG explorer from the given epsilon closure and rules.
+       */
+      static
+      const cfg_explorer_t<size_t, state_t>
+      make_explorer(const epsilon_closure_t& closure,
+                    const vector<rule_t>& rules) {
+        // Set of states found in rule or closure of rhs.
+        std::set<state_t> states;
+        std::vector< cfg_rule_t<state_t> > cfg_rules;
+        typedef std::vector<rule_t>::const_iterator rule_iter;
+        for (rule_iter i = rules.begin(); i != rules.end(); ++i) {
+          state_t first_state  = lhs_state(*i, 0);
+          states.insert( first_state);
+          state_t second_state = lhs_state(*i, 1);
+          states.insert(second_state);
+          const std::set<state_t> rhs_set = reachables(closure, rhs(*i));
+          typedef std::set<state_t>::const_iterator state_iter;
+          for (state_iter j = rhs_set.begin(); j != rhs_set.end(); ++j) {
+            states.insert(*j);
+            cfg_rules.push_back(
+                    cfg_rule_t<state_t>(*j, first_state, second_state));
+          }
+        }
+        return cfg_explorer_t<size_t, state_t>(states.begin(), states.end(),
+                cfg_rules.begin(), cfg_rules.end());
+      }
+
+      /** Reachable states that are terminals in the explorer. */
+      reachable_image_t image_;
+      /** Underlying CFG explorer. */
+      cfg_explorer_t<size_t, state_t> explorer_;
     };
 
     class AC_explorer : public op_explorer {
     public:
       AC_explorer(const theory_t& theory,
-                    const epsilon_closure_t& closure,
-                    const op_t& op,
-                    const vector<rule_t>& rules,
-                    reachable_states_t& reachable_states)
-        : op_explorer(theory, closure, op, rules, reachable_states),
-          processed_count_(0),
+                  const epsilon_closure_t& closure,
+                  const op_t& op,
+                  const vector<rule_t>& rules)
+        : op_explorer(theory, closure, op),
+          complete_(true),
           image_(bad_ops(op, axioms(theory, op)),
                  lhs_states(rules.begin(), rules.end())),
+          processed_count_(0),
           rhs_states_(rhs_states(rules.begin(), rules.end())) {
 
-        // Add states to grammar.
-        add_states_to_grammar(image_.states());
-        add_states_to_grammar(rhs_states_);
-        
+        set<state_t> states = image_.states();
+        states.insert(rhs_states_.begin(), rhs_states_.end());
+
         // Add epsilon rules to grammar.
-        typedef nonterminal_map_t::const_iterator nt_iter;
-        nt_iter ntm_begin = nonterminal_map_.begin();
-        nt_iter ntm_end = nonterminal_map_.end();
-        for (nt_iter i = ntm_begin; i != ntm_end; ++i) {
-          for (nt_iter j = ntm_begin; j != ntm_end; ++j) {
-            erule_t erule(i->first, j->first);
-            if (is_reachable(closure, erule_t(i->first, j->first)))
-              grammar_.add_transition(i->second, j->second);
+        typedef set<state_t>::const_iterator state_iter;
+        state_iter s_begin = states.begin();
+        state_iter s_end = states.end();
+        for (state_iter i = s_begin; i != s_end; ++i) {
+          grammar_.add_nonterminal(*i);
+        }
+        for (state_iter i = s_begin; i != s_end; ++i) {
+          for (state_iter j = s_begin; j != s_end; ++j) {
+            if ((i != j) && is_reachable(closure, erule_t(*i, *j))) {
+              grammar_.add(*j, *i);
+            }
           }
         }
-        
+
         // Add regular rules to grammar.
         typedef vector<rule_t>::const_iterator rule_iter;
         for (rule_iter i = rules.begin(); i != rules.end(); ++i) {
           // Add *i to grammar
-          symbol_t lhs_symbols[] = {
-            find_symbol(lhs_state(*i, 0)),
-            find_symbol(lhs_state(*i, 1))
-          };
-          symbol_t rhs_sym = find_symbol(rhs(*i));
-          grammar_.add_transition(lhs_symbols, lhs_symbols + 2, rhs_sym);
+          grammar_.add(
+                  make_rrule(rhs(*i), lhs_state(*i, 0), lhs_state(*i, 1)));
         }
+      }
+
+      void add_reachable(const term_t& term, const std::set<state_t>& set) {
+        if (kind(term) == output(op_))
+          image_.add(term, set);
       }
 
       /**
        * Explore new reachable states.  Note that if this operation throws
        * an exception, the explorer will become unusable.
+       * TODO: Adding guiding to exploration so that:
+       * * We do not explore routes that are guaranteed to reach states we
+       *   already know are reachable.
+       * * The exploration route will hit at least one semilinear set that
+       *   is larger than it was in a previous round.
+       * * Intelligently chose ordering of variables to assign.
        */
-      virtual void explore() {
+      void explore() {
         kind_t k = output(op_);
-        size_t old_size = state_count(image_);
-        // Add new states in reachable_states_ to image
-        add_each(reachable_states_->begin(k) + processed_count_,
-                 reachable_states_->end(k),
-                 image_);
-        // Update processed count
-        processed_count_ = state_count(*reachable_states_, k);
-
         // Add new states in image to grammar.
         typedef reachable_image_t::iterator image_iter;
-        image_iter img_begin = image_.begin();
+        image_iter img_begin = image_.begin() + processed_count_;
         image_iter img_end   = image_.end();
-        size_t cur_idx = old_size;
-        for (image_iter i = img_begin + old_size; i != img_end; ++i) {
+        for (image_iter i = img_begin; i != img_end; ++i) {
+          grammar_.add_terminal(processed_count_);
+          // Add production for each state in cur_set to cur_set to grammar.
           const set<state_t>& cur_set = i->second;
-          // Add new terminal symbol to grammar.
-          ostringstream o;
-          o << cur_set;
-          const string s = o.str();
-          symbol_t nt_sym = grammar_.add_terminal(s.c_str());
-          
-          // Add transitions from symbol to each symbol of states in cur_set
           typedef set<state_t>::const_iterator state_iter;
           state_iter set_end = cur_set.end();
           for (state_iter j = cur_set.begin(); j != set_end; ++j)
-            grammar_.add_transition(nt_sym, find_symbol(*j));
-          ++cur_idx;
+            grammar_.add(make_trule(*j, processed_count_));
+          ++processed_count_;
         }
 
         // Get parikh image of grammar.
-        parikh_map_t parikh_image = grammar_.parikh_image();
+        typedef std::map<state_t, semilinear_set> pimage_t;
+        pimage_t pimage = parikh_image(processed_count_, grammar_);
 
         // Initialize positive and negative semilinear sets for elements on
         // rhs.
@@ -1231,12 +1307,11 @@ namespace ceta {
         pos.reserve(rhs_states_.size());
         vector<semilinear_set> neg;
         neg.reserve(rhs_states_.size());
-        { 
+        {
           typedef set<state_t>::const_iterator state_iter;
           state_iter end = rhs_states_.end();
           for (state_iter i = rhs_states_.begin(); i != end; ++i) {
-            const symbol_t& sym = find_symbol(*i);
-            pos.push_back(parikh_image.find(sym)->second);
+            pos.push_back(pimage.find(*i)->second);
             neg.push_back(complement(pos.back()));
           }
         }
@@ -1266,7 +1341,7 @@ namespace ceta {
             {
               if (ceta::is_empty(stack.back()))
                 sig_error("Stack is empty");
-                
+
               const linear_set_group& g = *stack.back().begin();
               const vector<unsigned>& constant = *g.constants().begin();
 
@@ -1277,8 +1352,10 @@ namespace ceta {
                   subterms.push_back(subterm);
               }
             }
+            // Close states with respect to epsilon transitions.
             term_t term(op_, subterms.begin(), subterms.end());
-            reachable_states_->add(term, states);
+            pending_.push_back(reachable_t(term,
+                    closed_set(*closure_, states.begin(), states.end())));
 
             // Increment and backtrack to next valid state
             bool backtracking = !abort;
@@ -1317,51 +1394,51 @@ namespace ceta {
             ++cur_neg;
           }
         }
+        complete_ = true;
+      }
+
+      /** Returns true if this explorer has completely explored states. */
+      virtual bool complete(void) const {
+        return (processed_count_ == state_count(image_));
+      }
+
+      /** Returns true if this explorer has a new reachable state. */
+      bool has_next(void) const {
+        return !pending_.empty();
+      }
+
+      /** Returns next reachable term found. */
+      const term_t next_term(void) const {
+        return pending_.front().first;
+      }
+
+      /** Returns next reachable set of states found. */
+      const std::set<state_t>& next_set(void) const {
+        return pending_.front().second;
+      }
+
+      /** Pop next reachable pair from queue. */
+      void pop_next(void) {
+        pending_.pop_front();
       }
     private:
-      typedef map<state_t, symbol_t> nonterminal_map_t;
+      typedef std::pair<term_t, std::set<state_t> > reachable_t;
 
-      /** Adds each state in s to grammar. */
-      void add_states_to_grammar(const set<state_t>& s) {
-        typedef set<state_t>::const_iterator state_iter;
-        for (state_iter i = s.begin(); i != s.end(); ++i) {
-          if (nonterminal_map_.count(*i) == 0) {
-            symbol_t sym = grammar_.add_nonterminal(name(*i).c_str());
-            nonterminal_map_.insert(make_pair(*i, sym));
-          }
-        }
-      }
-
-      /** 
-       * Returns nonterminal symbol associated with state or throws error
-       * if there is not one.
-       */
-      const symbol_t& find_symbol(const state_t& state) {
-        nonterminal_map_t::const_iterator i = nonterminal_map_.find(state);
-        if (i != nonterminal_map_.end()) {
-          return i->second;
-        } else {
-          sig_error("Could not find state " + name(state) 
-                  + " in nonterminal map.");
-        }
-      }
-
-      /** 
-       * The number of state sets in reachable_states_ that we have
-       * processed.
-       */
-      size_t processed_count_;
-      /** 
+      /** Indicates if explorer is complete. */
+      bool complete_;
+      /**
        * The reachable states intersected with the states that appear on
        * the left-hand-side of rule for operator.
        */
       reachable_image_t image_;
+      /** Number of state sets in image_ that have been processed. */
+      size_t processed_count_;
       /** States that appear on rhs of rule for op. */
       set<state_t> rhs_states_;
       /** Context free grammar built for rules of AC_explorer. */
-      cfg_t grammar_;
-      /** Mapping from states to symbol for that state. */
-      nonterminal_map_t nonterminal_map_;
+      cfg_t<size_t, state_t> grammar_;
+      /** Queue of reachable states that have not been returned. */
+      std::deque<reachable_t> pending_;
     };
 
     typedef map<kind_t, state_predicate_t> predicate_map_t;
@@ -1373,7 +1450,7 @@ namespace ceta {
     if (x != y)
       sig_error("Kinds are not equal.");
   }
-  
+
   void check_constant(const op_t& op) {
     if (!is_constant(op))
       sig_error(name(op) + " must be a constant.");
@@ -1418,7 +1495,7 @@ namespace ceta {
       sig_error("Cannot combine two axiom sets that both have identity \
                  axioms.");
     }
-    if ((is_assoc_ || rhs.is_assoc_ || is_comm_ || rhs.is_comm_) && 
+    if ((is_assoc_ || rhs.is_assoc_ || is_comm_ || rhs.is_comm_) &&
         ((rhs.id_type_ == id_left) || (rhs.id_type_ == id_right))) {
       sig_error("If axiom set contains asssociativity or commutativity, it cannot contain a left or right identity.");
     }
@@ -1430,6 +1507,39 @@ namespace ceta {
     }
     return *this;
   }
+
+  std::ostream& operator<<(ostream& o, const axiom_set_t& axioms) {
+    // Indicates if text has been written to stream.
+    bool text = false;
+    if (is_assoc(axioms)) {
+      o << "assoc";
+      text = true;
+    }
+    if (is_comm(axioms)) {
+      if (text) o << " ";
+      o << "comm";
+      text = true;
+    }
+    // Write text before id symbol if necessary.
+    if (text && id_symbol(axioms)) o << " ";
+    switch (id_type(axioms)) {
+    case id_left:
+      o << "left-id: " << *id_symbol(axioms);
+      break;
+    case id_right:
+      o << "right-id: " << *id_symbol(axioms);
+      break;
+    case id_both:
+      o << "id: " << *id_symbol(axioms);
+      break;
+    case id_none:
+      if (!text)
+        o << "none";
+      break;
+    }
+    return o;
+  }
+
 
   typedef map<op_t, set<op_t> > id_symbols_t;
 
@@ -1455,8 +1565,7 @@ namespace ceta {
     return theory.impl_->kinds.insert(kind).first;
   }
 
-  const theory_t::op_iterator
-          add_op(theory_t& theory, const op_t& op) {
+  const theory_t::op_iterator add_op(theory_t& theory, const op_t& op) {
     // Check that kinds of op are in theory
     typedef op_t::input_iterator kind_iter;
     for (kind_iter i = inputs_begin(op); i != inputs_end(op); ++i)
@@ -1477,13 +1586,13 @@ namespace ceta {
     return result.first;
   }
 
-  void set_axioms(theory_t& theory, const op_t& bin_op, 
+  void set_axioms(theory_t& theory, const op_t& bin_op,
                   const axiom_set_t& new_axioms) {
     // Check to see if new axioms equals old axioms.
     // This also checks that bin_op is in the theory.
     if (new_axioms == axioms(theory, bin_op))
       return;
-    
+
     // Since axioms are different we know that if bin_op is not binary, then
     // new_axioms do not equal none().  This is an error, so now we just
     // check that bin_op is binary.
@@ -1494,7 +1603,7 @@ namespace ceta {
 
     make_unique(theory.impl_);
     axiom_set_t& cur_axioms = theory.impl_->axioms.find(bin_op)->second;
-    
+
     id_symbols_t& id_symbols = theory.impl_->id_symbols;
     // Add new id to id_symbols (can throw bad_alloc)
     boost::optional<op_t> new_id = id_symbol(new_axioms);
@@ -1543,6 +1652,14 @@ namespace ceta {
     return theory.impl_->ops.end();
   }
 
+  ostream& operator<<(ostream& o, const theory_t& theory) {
+    decl_writer writer(&o, &theory);
+    for_each(kinds_begin(theory), kinds_end(theory), writer);
+    for_each(  ops_begin(theory),   ops_end(theory), writer);
+    return o;
+  }
+
+
   const set<op_t>& id_symbols(const id_symbols_t& id_syms, const op_t& id) {
     id_symbols_t::const_iterator i = id_syms.find(id);
     if (i != id_syms.end()) {
@@ -1552,7 +1669,7 @@ namespace ceta {
       return empty_set;
     }
   }
- 
+
   theory_t::op_iterator id_contexts_begin(const theory_t& theory,
                                           const op_t& id) {
     check_member(theory, id);
@@ -1573,9 +1690,11 @@ namespace ceta {
                  ops_begin(rhs), ops_end(rhs),
                  ops_equivalent(lhs, rhs));
   }
+
   bool models(const state_predicate_t& pred, const set<state_t>& model) {
     return apply_visitor(state_models_visitor(model), pred);
   }
+
   ostream& operator<<(ostream& o, const state_predicate_t& p) {
     apply_visitor(print_visitor(&o), p);
     return o;
@@ -1599,10 +1718,10 @@ namespace ceta {
     vector<rule_t> rules;
   };
 
-  ta_t::ta_t(const theory_t& theory) 
+  ta_t::ta_t(const theory_t& theory)
     : impl_(new ta_impl(theory)) {
     typedef theory_t::kind_iterator kind_iter;
-    for (kind_iter i = kinds_begin(theory); i != kinds_end(theory); ++i) 
+    for (kind_iter i = kinds_begin(theory); i != kinds_end(theory); ++i)
       impl_->predicates.insert(make_pair(*i, state_predicate_t(*i, false)));
   }
 
@@ -1706,7 +1825,7 @@ namespace ceta {
       ta.impl_->rules.push_back(rule);
     }
   }
-  
+
   typedef map<op_t, vector<rule_t> > rule_partition_t;
 
   /** Partitions rules in automaton based on operator on left-hand-side. */
@@ -1723,7 +1842,7 @@ namespace ceta {
 
   /**
    * Adds rules to closure by examining theory.  Rules on constant symbols
-   * are added directly.  Guarded rules are added for binary symbols with 
+   * are added directly.  Guarded rules are added for binary symbols with
    * identity.  Other rules are ignored.
    */
   static inline
@@ -1753,29 +1872,49 @@ namespace ceta {
     }
   }
 
-  typedef list<boost::shared_ptr<op_explorer> > explorer_list_t;
-
   op_explorer* new_explorer(const ta_t& ta,
                             const epsilon_closure_t& closure,
                             const op_t& op,
-                            const vector<rule_t>& rules,
-                            reachable_states_t& states) {
+                            const vector<rule_t>& rules) {
     axiom_set_t cur_axioms = axioms(theory(ta), op);
     if (is_assoc(cur_axioms)) {
       if (is_comm(cur_axioms)) {
-        return new    AC_explorer(theory(ta), closure, op, rules, states);
+        return new    AC_explorer(theory(ta), closure, op, rules);
       } else {
-        return new assoc_explorer(theory(ta), closure, op, rules, states);
+        return new assoc_explorer(theory(ta), closure, op, rules);
       }
     } else {
       if (is_comm(cur_axioms)) {
-        return new  comm_explorer(theory(ta), closure, op, rules, states);
+        return new  comm_explorer(theory(ta), closure, op, rules);
       } else {
-        return new  free_explorer(theory(ta), closure, op, rules, states);
+        return new  free_explorer(theory(ta), closure, op, rules);
       }
     }
   }
-  
+
+  /**
+   * Add the term and states as a reachable to each explorer in the given
+   * range.  Additionally, if the explorer was previously identified as
+   * complete and is not after adding the reachable, add the explorer to the
+   * active queue.
+   */
+  template<typename ExplorerIterator, typename ActiveQueue>
+  void add_reachable(const term_t& term,
+                     const std::set<state_t>& states,
+                     ExplorerIterator explorers_begin,
+                     ExplorerIterator explorers_end,
+                     ActiveQueue& active) {
+    for (ExplorerIterator i = explorers_begin; i != explorers_end; ++i) {
+      boost::shared_ptr<op_explorer>& cur_explorer = *i;
+      bool prev_complete = cur_explorer->complete();
+      (*i)->add_reachable(term, states);
+      // If i was previously complete and is not now.
+      if (prev_complete && !cur_explorer->complete()) {
+        active.push_back(cur_explorer);
+      }
+    }
+  }
+
   const test_result_t test_emptiness(const ta_t& ta) {
     epsilon_closure_t closure;
     // Add each epsilon rule to closure
@@ -1793,45 +1932,66 @@ namespace ceta {
     rule_partition_t rule_partition;
     // Add each rule to partition
     for_each(rules_begin(ta), rules_end(ta),
-             boost::bind(add_rule_to_partition, 
+             boost::bind(add_rule_to_partition,
                          _1,
                          boost::ref(rule_partition)));
 
     // Keep exploring until we stop finding new states.
-    try {
-      reachable_states_t reachable_states(ta);
+    typedef boost::shared_ptr<op_explorer> shared_explorer_ptr;
 
-      // Initialize explorers and reachable_states
-      explorer_list_t explorers;
-      typedef theory_t::op_iterator op_iter;
-      op_iter end = ops_end(theory(ta));
-      for (op_iter i = ops_begin(theory(ta)); i != end; ++i) {
-        if (is_constant(*i)) {
-          reachable_states.add(make_constant(*i), reachables(closure, *i));
-        } else {
-          explorers.push_back(
-              boost::shared_ptr<op_explorer>(
-                  new_explorer(ta, closure, *i, rule_partition[*i],
-                               reachable_states)));
-        }
+    // Vector for constants in theory.
+    std::vector<op_t> constants;
+
+    typedef list<shared_explorer_ptr> explorer_list_t;
+    // Initialize explorers and constants.
+    explorer_list_t explorers;
+    typedef theory_t::op_iterator op_iter;
+    op_iter end = ops_end(theory(ta));
+    for (op_iter i = ops_begin(theory(ta)); i != end; ++i) {
+      if (is_constant(*i)) {
+        constants.push_back(*i);
+      } else {
+        explorers.push_back(
+            shared_explorer_ptr(
+                new_explorer(ta, closure, *i, rule_partition[*i])));
       }
-    
-      bool found_new = true;
-      while (found_new) {
-        found_new = false;
-        typedef explorer_list_t::iterator op_iter;
-        for (op_iter i = explorers.begin(); i != explorers.end(); ++i) {
-          kind_t k = output((*i)->op());
-          size_t old_count = state_count(reachable_states, k);
-          (*i)->explore();
-          size_t new_count = state_count(reachable_states, k);
-          found_new |= (old_count != new_count);
-        }
-      }
-    } catch (const test_result_t& counterexample) {
-      return counterexample;
     }
-    return test_result_t();
+
+    /** Queue of explorers that are active. */
+    std::deque<shared_explorer_ptr> active;
+
+    // Add reachable set for each constant to explorers.
+    typedef std::vector<op_t>::const_iterator const_iter;
+    for (const_iter i = constants.begin(); i != constants.end(); ++i) {
+      term_t term = make_constant(*i);
+      std::set<state_t> set = reachables(closure, *i);
+//      cerr << "Adding reachable cons: " << term << " " << set << endl;
+      if (models(predicate(ta, kind(term)), set))
+        return test_result_t(term, set);
+      add_reachable(term, set, explorers.begin(), explorers.end(), active);
+    }
+
+    // While explorers are active.
+    while (!active.empty()) {
+      op_explorer& cur_explorer = *active.front();
+      cur_explorer.explore();
+      // Add any reachable states found.
+      while (cur_explorer.has_next()) {
+        const term_t term = cur_explorer.next_term();
+        const std::set<state_t>& set = cur_explorer.next_set();
+//        cerr << "Adding reachable: " << term << " " << set << endl;
+        if (models(predicate(ta, kind(term)), set))
+          return test_result_t(term, set);
+        add_reachable(term, set, explorers.begin(), explorers.end(), active);
+        cur_explorer.pop_next();
+      }
+      // Deactivate explorer if complete.
+      if (cur_explorer.complete()) {
+        active.pop_front();
+      }
+    }
+    test_result_t accept_result;
+    return accept_result;
   }
 
   const ta_t operator!(const ta_t& ta) {
@@ -1844,8 +2004,6 @@ namespace ceta {
       set_predicate(result, !predicate(ta, *i));
     return result;
   }
-
-  
 
   ta_t& operator&=(ta_t& lhs, const ta_t& rhs) {
     check_equal(theory(lhs), theory(rhs));
@@ -1881,16 +2039,10 @@ namespace ceta {
     return lhs;
   }
 
-  ostream& operator<<(ostream& o, const theory_t& theory) {
-    decl_writer writer(&o);
-    for_each(kinds_begin(theory), kinds_end(theory), writer);
-    for_each(  ops_begin(theory),   ops_end(theory), writer);
-    return o;
-  }
-
   ostream& operator<<(ostream& o, const ta_t& ta) {
     o << theory(ta);
-    decl_writer writer(&o);
+    decl_writer writer(&o, &theory(ta));
+    for_each(states_begin(ta), states_end(ta), writer);
     theory_t::kind_iterator k_begin = kinds_begin(theory(ta));
     theory_t::kind_iterator k_end   =   kinds_end(theory(ta));
     for (theory_t::kind_iterator i = k_begin; i != k_end; ++i)

@@ -106,23 +106,22 @@
  * for emptiness.
  */
 
-#include <map>
-#include <set>
-#include <vector>
-#include <iostream>
 #include <algorithm>
+#include <map>
+#include <ostream>
+#include <set>
+#include <string>
+#include <vector>
 
+#include <boost/optional/optional.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/optional/optional.hpp>
 #include <boost/variant.hpp>
 
 #include <ceta/export.h>
 
 /** Namespace for all of Ceta's declarations. */
 namespace ceta {
-  class kind_impl;
-
   /** A kind in a many-kinded signature. */
   class CETA_DSO_EXPORT kind_t {
   public:
@@ -387,7 +386,11 @@ namespace ceta {
     term_t(const op_t& op, I subterms_begin, I subterms_end)
       : impl_(new impl_t(op, std::vector<term_t>(subterms_begin,
                                                  subterms_end))) {
-      check_well_formed(op, impl_->get<1>());
+      /**
+       * FIXME: Line below commented out because of issue with gcc-3.3.
+       * Need to figure out why
+       */
+      //check_well_formed(op, impl_->get<1>(*impl_));
     }
   private:
     friend const op_t& op(const term_t& term);
@@ -634,6 +637,12 @@ namespace ceta {
   const axiom_set_t operator|(const axiom_set_t& x, const axiom_set_t& y) {
     return axiom_set_t(x) |= y;
   }
+  /**
+   * Writes axioms to stream for debugging purposes.
+   * \relates axiom_set_t
+   */
+  std::ostream&
+  operator<<(std::ostream& o, const axiom_set_t& axioms) CETA_DSO_EXPORT;
   
   /** 
    * An equational theory over a many-kind signature.
@@ -801,8 +810,8 @@ namespace ceta {
    * Writes theory representation to stream for debugging purposes.
    * \relates theory_t
    */
-  std::ostream& operator<<(std::ostream& o,
-                           const theory_t& theory) CETA_DSO_EXPORT;
+  std::ostream&
+  operator<<(std::ostream& o, const theory_t& theory) CETA_DSO_EXPORT;
 
   /** A state in a tree automaton. */
   class CETA_DSO_EXPORT state_t {
@@ -955,31 +964,26 @@ namespace ceta {
      */
     state_predicate_t(const kind_t& kind, bool value);
     /** Creates a state predicate whose models are sets containing state. */
-    state_predicate_t(state_t state);
+    state_predicate_t(const state_t& state);
+    /** Creates a state predicate for a complementation. */
+    state_predicate_t(const not_predicate_t& p);
+    /** Creates a state predicate for a conjunction. */
+    state_predicate_t(const and_predicate_t& p);
+    /** Creates a state predicate for a disjunction. */
+    state_predicate_t(const or_predicate_t& p);
   private:
     typedef boost::variant<bool, state_t, not_predicate_t, and_predicate_t,
             or_predicate_t> variant_t;
     typedef boost::tuple<kind_t, variant_t> impl_t;
-    friend const state_predicate_t
-            operator!(const state_predicate_t& pred);
-    friend const state_predicate_t
-            operator&(const state_predicate_t& x,
-                      const state_predicate_t& y);
-    friend const state_predicate_t
-            operator|(const state_predicate_t& x,
-                      const state_predicate_t& y);
     friend const kind_t& kind(const state_predicate_t& pred);
     template<typename Visitor>
     friend
     typename Visitor::result_type
       apply_visitor(const Visitor& visitor, const state_predicate_t& pred);
-    /** Constructs a new predicate given its kind and variant. */
-    state_predicate_t(const kind_t& kind, const variant_t& variant);
-
     /** Implementation of predicate. */
     boost::shared_ptr<impl_t> impl_;
   };
-  /** Not operator that complements a predicate. */
+  /** Predicate with not operator on top. */
   struct not_predicate_t {
     /** Constructs new not predicate. */
     not_predicate_t(const state_predicate_t& new_arg)
@@ -988,23 +992,25 @@ namespace ceta {
     /** Predicate that is complemented by this operator. */
     state_predicate_t arg;
   };
-  /** And operator that conjoins two predicates. */
+  /** Predicate with and operator on top. */
   struct and_predicate_t {
     /** Constructs new and predicate. */
     and_predicate_t(const state_predicate_t& new_lhs,
                     const state_predicate_t& new_rhs)
       : lhs(new_lhs), rhs(new_rhs) {
+      check_equal(kind(lhs), kind(rhs));
     }
     /** First predicate that is conjoined by this predicate. */
     state_predicate_t lhs;
     /** Second predicate that is conjoined by this predicate. */
     state_predicate_t rhs;
   };
-  /** Or operator that disjoins two predicates.  */
+  /** Predicate with or perator on top. */
   struct or_predicate_t {
     or_predicate_t(const state_predicate_t& new_lhs,
                    const state_predicate_t& new_rhs)
       : lhs(new_lhs), rhs(new_rhs) {
+      check_equal(kind(lhs), kind(rhs));
     }
     /** First predicate that is disjoined by this predicate. */
     state_predicate_t lhs;
@@ -1019,16 +1025,25 @@ namespace ceta {
   state_predicate_t::state_predicate_t(const kind_t& kind, bool value)
     : impl_(new impl_t(kind, value)) {
   }
-  inline
   /** Creates a state predicate whose models are sets containing state. */
-  state_predicate_t::state_predicate_t(state_t state)
+  inline
+  state_predicate_t::state_predicate_t(const state_t& state)
     : impl_(new impl_t(kind(state), state)) {
   }
-  /** Constructs a new predicate given its kind and variant. */
+  /** Creates a state predicate for a complementation. */
   inline
-  state_predicate_t::state_predicate_t(const kind_t& kind,
-          const state_predicate_t::variant_t& variant) 
-    : impl_(new impl_t(kind, variant)) {
+  state_predicate_t::state_predicate_t(const not_predicate_t& p)
+    : impl_(new impl_t(kind(p.arg), p)) {
+  }
+  /** Creates a state predicate for a conjunction. */
+  inline
+  state_predicate_t::state_predicate_t(const and_predicate_t& p) 
+    : impl_(new impl_t(kind(p.lhs), p)) {
+  }
+  /** Creates a state predicate for a disjunction. */
+  inline
+  state_predicate_t::state_predicate_t(const or_predicate_t& p) 
+    : impl_(new impl_t(kind(p.lhs), p)) {
   }
   /**
    * Returns the kind of the predicate.
@@ -1048,8 +1063,8 @@ namespace ceta {
    * \relates state_predicate_t
    */
   inline
-  const state_predicate_t operator!(const state_predicate_t& pred) {
-    return state_predicate_t(kind(pred), not_predicate_t(pred));
+  const state_predicate_t operator!(const state_predicate_t& arg) {
+    return state_predicate_t(not_predicate_t(arg));
   }
   /**
    * Returns conjunction of two predicates.
@@ -1058,8 +1073,7 @@ namespace ceta {
   inline
   const state_predicate_t operator&(const state_predicate_t& lhs,
                                     const state_predicate_t& rhs) {
-    check_equal(kind(lhs), kind(rhs));
-    return state_predicate_t(kind(lhs), and_predicate_t(lhs, rhs));
+    return state_predicate_t(and_predicate_t(lhs, rhs));
   }
   /**
    * Returns disjunction of two predicates.
@@ -1068,8 +1082,7 @@ namespace ceta {
   inline
   const state_predicate_t operator|(const state_predicate_t& lhs,
                                     const state_predicate_t& rhs) {
-    check_equal(kind(lhs), kind(rhs));
-    return state_predicate_t(kind(lhs), or_predicate_t(lhs, rhs));
+    return state_predicate_t(or_predicate_t(lhs, rhs));
   }
   /**
    * Intersects lhs predicate with rhs.
@@ -1100,7 +1113,7 @@ namespace ceta {
    * \relates state_predicate_t
    */
   std::ostream&
-    operator<<(std::ostream& o, const state_predicate_t& p) CETA_DSO_EXPORT;
+  operator<<(std::ostream& o, const state_predicate_t& p) CETA_DSO_EXPORT;
 
   /** An epsilon rule p -> q. */
   class CETA_DSO_EXPORT erule_t {
@@ -1164,6 +1177,7 @@ namespace ceta {
   void check_well_formed(const op_t& op,
                          const std::vector<state_t>& lhs_states,
                          const state_t& rhs) CETA_DSO_EXPORT;
+
   /// A rule f(p1, ..., pn) -> q.  
   /**
    * The kind of q should equal the output kind of f.  If f is a binary
@@ -1195,7 +1209,7 @@ namespace ceta {
       : op_(op),
         lhs_states_(lhs_states_begin, lhs_states_end),
         rhs_(rhs) {
-      check_well_formed(op, lhs_states_, rhs);
+      //check_well_formed(op, lhs_states_, rhs);
     }
   private:
     friend const op_t& op(const rule_t& rule);

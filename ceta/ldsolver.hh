@@ -25,6 +25,7 @@
  */
 
 #include <cstddef>
+#include <vector>
 
 #include "export.h"
 
@@ -64,7 +65,7 @@ namespace ceta {
      * Returns the next solution or <code>NULL</code> if there are no more
      * solutions.
      */
-    const unsigned* next(void);
+    const bool next(std::vector<unsigned>& sol);
   private:
     // Disable copy construction and assignment.
     ld_solver_t(const ld_solver_t&);

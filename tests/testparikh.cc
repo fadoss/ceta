@@ -19,57 +19,79 @@ void error(const string& msg) {
   throw logic_error(msg);
 }
 
-void add(cfg_t& g, const list<symbol_t>& lhs, symbol_t rhs) {
-  symbol_t lhs_elts[lhs.size()];
-  std::copy(lhs.begin(), lhs.end(), lhs_elts);
-  g.add_transition(lhs_elts, lhs_elts + lhs.size(), rhs);
+//void add(cfg_t& g, const list<symbol_t>& lhs, symbol_t rhs) {
+//  symbol_t lhs_elts[lhs.size()];
+//  std::copy(lhs.begin(), lhs.end(), lhs_elts);
+//  g.add_transition(lhs_elts, lhs_elts + lhs.size(), rhs);
+//}
+//
+//void add1(cfg_t& g, symbol_t lhs, symbol_t rhs) {
+//  g.add_transition(lhs, rhs);
+//}
+
+void test_and(void) {
+  cfg_t<size_t, string> g;
+  size_t t0 = 0; g.add_terminal(t0);
+  size_t t1 = 1; g.add_terminal(t1);
+
+  g.add_nonterminal("Term1");
+  g.add_nonterminal("Term2");
+  g.add_nonterminal("cBool");
+  g.add_nonterminal("rBool");
+
+  g.add(rrule_t<string>("rBool", "Term1", "cBool"));
+  g.add(rrule_t<string>("rBool", "Term2", "cBool"));
+  g.add(trule_t<size_t, string>("Term1", 0));
+  g.add(trule_t<size_t, string>("cBool", 0));
+  g.add(trule_t<size_t, string>("Term2", 1));
+  g.add(trule_t<size_t, string>("cBool", 1));
+
+  typedef std::map<std::string, semilinear_set> parikh_map_t;
+  parikh_map_t s = parikh_image(2, g);
 }
 
-void add1(cfg_t& g, symbol_t lhs, symbol_t rhs) {
-  g.add_transition(lhs, rhs);
-}
+void test_mset() {
+  cfg_t<size_t, string> g;
 
-void test_simple() {
-  cfg_t g;
+  size_t t0 = 0; g.add_terminal(t0); // {cNat, cMSet, kNAT, q0}
+  size_t t1 = 1; g.add_terminal(t1); // {cNat, cMSet, kNAT, q2}
+  size_t t2 = 2; g.add_terminal(t2); // {dNat, dMSet, kNAT, rNAT}
 
-  symbol_t t0 = g.add_terminal("0"); // {cNat, cMSet, kNAT, q0}
-  symbol_t t1 = g.add_terminal("1"); // {cNat, cMSet, kNAT, q2}
-  symbol_t t2 = g.add_terminal("2"); // {dNat, dMSet, kNAT, rNAT}
+  string cNat  = "cNat";  g.add_nonterminal(cNat); 
+  string cMSet = "cMSet"; g.add_nonterminal(cMSet); 
+  string dNat  = "dNat";  g.add_nonterminal(dNat); 
+  string dMSet = "dMSet"; g.add_nonterminal(dMSet); 
+  string rNAT  = "rNAT";  g.add_nonterminal(rNAT); 
+  string kNAT  = "kNAT";  g.add_nonterminal(kNAT); 
+  string q0    = "q0";    g.add_nonterminal(q0); 
+  string q1    = "q1";    g.add_nonterminal(q1); 
+  string q2    = "q2";    g.add_nonterminal(q2); 
+  string q3    = "q3";    g.add_nonterminal(q3); 
 
-  symbol_t cNat  = g.add_nonterminal( "cNat");
-  symbol_t cMSet = g.add_nonterminal("cMSet");
-  symbol_t dNat  = g.add_nonterminal( "dNat");
-  symbol_t dMSet = g.add_nonterminal("dMSet");
-  symbol_t rNAT  = g.add_nonterminal( "rNAT");
-  symbol_t kNAT  = g.add_nonterminal( "kNAT");
-  symbol_t q0    = g.add_nonterminal(   "q0");
-  symbol_t q1    = g.add_nonterminal(   "q1");
-  symbol_t q2    = g.add_nonterminal(   "q2");
-  symbol_t q3    = g.add_nonterminal(   "q3");
-
-  add(g, list_of(cMSet)(cMSet), cMSet);
-  add(g, list_of(q0)(cMSet), q1);
-  add(g, list_of(q2)(cMSet), q3);
-  add(g, list_of(rNAT)(kNAT), rNAT);
-  add(g, list_of(kNAT)(rNAT), rNAT);
-  add(g, list_of(kNAT)(kNAT), kNAT);
+  g.add(make_rrule(cMSet, cMSet, cMSet));
+  g.add(make_rrule(q1, q0, cMSet));
+  g.add(make_rrule(q3, q2, cMSet));
+  g.add(make_rrule(rNAT, rNAT, kNAT));
+  g.add(make_rrule(rNAT, kNAT, rNAT));
+  g.add(make_rrule(kNAT, kNAT, kNAT));
   
-  add1(g, t0, cNat);
-  add1(g, t0, cMSet);
-  add1(g, t0, kNAT);
-  add1(g, t0, q0);
+  g.add(make_trule(cNat,  t0));
+  g.add(make_trule(cMSet, t0));
+  g.add(make_trule(kNAT,  t0));
+  g.add(make_trule(q0,    t0));
 
-  add1(g, t1, cNat);
-  add1(g, t1, cMSet);
-  add1(g, t1, kNAT);
-  add1(g, t1, q2);
+  g.add(make_trule(cNat,  t1));
+  g.add(make_trule(cMSet, t1));
+  g.add(make_trule(kNAT,  t1));
+  g.add(make_trule(q2,    t1));
 
-  add1(g, t2, dNat);
-  add1(g, t2, dMSet);
-  add1(g, t2, kNAT);
-  add1(g, t2, rNAT);
+  g.add(make_trule(dNat,  t2));
+  g.add(make_trule(dMSet, t2));
+  g.add(make_trule(kNAT,  t2));
+  g.add(make_trule(rNAT,  t2));
     
-  parikh_map_t s = g.parikh_image();
+  typedef std::map<std::string, semilinear_set> parikh_map_t;
+  parikh_map_t s = parikh_image(3, g);
 
   if (s.size() != 10) error("Incorrect size");
   if (s[cNat].dim() != 3) error("Incorrect terminal count");
@@ -81,13 +103,15 @@ void test_simple() {
   typedef parikh_map_t::const_iterator iter;
   for (iter i = s.begin(); i != s.end(); ++i)
     cerr << "set: " << i->first << " " << i->second;
+  cerr << endl;
 }
 
 
 int main(int argc, char **argv)
 {
   try {
-    test_simple();
+    test_and();
+    test_mset();
     return 0;
   } catch (const exception& e) {
     cerr << e.what() << endl;

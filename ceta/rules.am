@@ -1,4 +1,4 @@
-# vim: ft=make
+# vim: ft=automake
 lib_LIBRARIES = ceta/libceta.a
 pkginclude_HEADERS = ceta/ceta.hh ceta/export.h
 
@@ -11,8 +11,11 @@ ceta_libceta_a_SOURCES = ceta/bi_graph.hh \
                          ceta/sls.cc \
                          ceta/combinations.hh \
 			 ceta/proxy.hh \
+			 ceta/cfg.hh \
+			 ceta/learn.hh \
+			 ceta/earley.hh \
+			 ceta/learncfg.hh \
                          ceta/parikh.hh \
-                         ceta/parikh.cc \
-                         ceta/ceta.hh \
 			 ceta/closure.hh \
+                         ceta/ceta.hh \
                          ceta/ceta.cc

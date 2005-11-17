@@ -1,4 +1,4 @@
-AC_INIT(ceta, alpha1, jhendrix@uiuc.edu)
+AC_INIT(ceta, alpha2, jhendrix@uiuc.edu)
 AC_LANG(C++)
 
 dnl Init automake to not require GNU files (NEWS and Changelog), enable all 
@@ -10,10 +10,12 @@ dnl Do not rebuild generated files every time
 AM_MAINTAINER_MODE
 
 dnl Check for programs
+CXXFLAGS="-O2 -Wall ${CXXFLAGS}"
 AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_LN_S
+
 
 dnl Check for Doxygen
 AC_ARG_VAR([DOXYGEN], [Doxygen command])
@@ -57,7 +59,7 @@ AC_MSG_RESULT($have_gcc_class_visibility)
 if test "$have_gcc_class_visibility" = yes; then
   AC_DEFINE(HAVE_GCC_CLASS_VISIBILITY, 1,
             [Define to 1 if compiler supports visibility attributes])
-  CXXFLAGS="$CXXFLAGS -fvisibility=internal"
+  CXXFLAGS="-fvisibility=internal ${CXXFLAGS}"
 fi
 
 AC_CONFIG_HEADERS([config.h])

@@ -20,8 +20,17 @@
 #include <map>
 #include <boost/rational.hpp>
 
-#define GAUSSIAN_EXTENSIONS
+//#define MAUDE_SOLVER
+//#define MAUDE_USE_GCD
+//#define GAUSSIAN_EXTENSIONS
 //#define PROFILE_NODES
+
+
+#ifdef MAUDE_SOLVER
+#include <macros.hh>
+#include <vector.hh>
+#include <mpzSystem.hh>
+#endif
 
 using namespace ceta;
 using namespace std;
@@ -218,7 +227,7 @@ namespace impl {
       clear();
     }
   
-    const unsigned* add(const unsigned* sol) {
+    void add(const unsigned* sol) {
       unsigned* newsol = new unsigned[nc_];
       try {
         std::copy(sol, sol + nc_, newsol);
@@ -227,7 +236,6 @@ namespace impl {
         delete [] newsol;
         throw;
       }
-      return newsol;
     }
 
     void clear(void) {
@@ -239,6 +247,7 @@ namespace impl {
       s_.clear();
     }
 
+    /** Returns true if no previous solution is elementwise less than sol. */
     bool is_min(const unsigned* sol) const {
       typedef vector<const unsigned*>::const_iterator iter;
 
@@ -347,6 +356,90 @@ namespace impl {
 using namespace ceta::impl;
 
 namespace ceta {
+#ifdef MAUDE_SOLVER
+  class ld_solver_impl {
+  public:
+    ld_solver_impl(size_t nr, size_t nc, const int* coefficients)
+      : nr_(nr),
+        nc_(nc),
+        coefs_(coefficients, coefficients + nr * nc),
+        system_(new MpzSystem()),
+        homo_(true) {
+      // Copy coefficients into system to begin solving homogeneous case.
+      MpzSystem::IntVec eqn(nc);
+      for (size_t row = 0; row != nr; ++row) {
+        for (size_t col = 0; col != nc; ++col)
+          eqn[col] = coefs_[col * nr_ + row];
+        system_->insertEqn(eqn);
+      }
+      // Set bounds
+      for (size_t col = 0; col != nc; ++col)
+        eqn[col] = UNBOUNDED;
+      system_->setUpperBounds(eqn);
+    }
+
+    size_t nr(void) const {
+      return nr_;
+    }
+
+    size_t nc(void) const {
+      return nc_;
+    }
+
+    void solve(const int* v) {
+      system_.reset(new MpzSystem());
+      homo_ = false;
+      // Copy coefficients offset by one.
+      MpzSystem::IntVec eqn(nc_ + 1);
+      for (size_t row = 0; row != nr_; ++row) {
+        eqn[0] = -v[row];
+        for (size_t col = 0; col != nc_; ++col)
+          eqn[col + 1] = coefs_[col * nr_ + row];
+        system_->insertEqn(eqn);
+      }
+      // Set bounds
+      eqn[0] = 1;
+      for (size_t col = 0; col != nc_; ++col)
+        eqn[col + 1] = UNBOUNDED;
+      system_->setUpperBounds(eqn);
+    }
+
+    bool next(vector<unsigned>& sol) {
+      if (homo_) {
+        MpzSystem::IntVec msol(nc_);
+        #ifdef MAUDE_USE_GCD
+        if (system_->findNextMinimalSolutionGcd(msol)) {
+        #else
+        if (system_->findNextMinimalSolution(msol)) {
+        #endif
+          for (size_t i = 0; i != nc_; ++i)
+            sol[i] = msol[i].get_ui();
+          return true;
+        }
+      } else {
+        MpzSystem::IntVec msol(nc_ + 1);
+        #ifdef MAUDE_USE_GCD
+        while (system_->findNextMinimalSolutionGcd(msol)) {
+        #else
+        while (system_->findNextMinimalSolution(msol)) {
+        #endif
+          if (msol[0] == 1) {
+            for (size_t i = 0; i != nc_; ++i)
+              sol[i] = msol[i + 1].get_ui();
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+  private:
+    const size_t nr_;
+    const size_t nc_;
+    const vector<int> coefs_;
+    auto_ptr<MpzSystem> system_;
+    bool homo_;
+  };
+#else
   class ld_solver_impl {
   public:
     ld_solver_impl(size_t nr, size_t nc, const int* coefficients)
@@ -385,9 +478,10 @@ namespace ceta {
     }
 
     void solve(const int* v) {
+      vector<unsigned> sol(nc_);
       // Solve all homogeneous solutions if we haven't already
       while (!homo_complete_)
-        next();
+        next(sol);
       
       // Reset stack and inhomogeneous solutions to clean slate
       stack_.clear();
@@ -401,10 +495,10 @@ namespace ceta {
       stack_.rank() = nc_;
     }
 
-    const unsigned* next(void) {
-      const unsigned* result = NULL;
+    bool next(std::vector<unsigned>& sol) {
+      bool result = false;
     
-      while ((result == NULL) && (!stack_.is_empty())) { 
+      while (!result && (!stack_.is_empty())) { 
     
         // Get locations from top of stack
         int* remainder = stack_.remainder();
@@ -449,9 +543,13 @@ namespace ceta {
             bool is_min = hSol_.is_min(solution)
                      && inhSol_.is_min(solution);
     	    if (is_min) {
-                result = homo_complete_ ?
-                         inhSol_.add(solution) :
-                           hSol_.add(solution);
+              result = true;
+              if (homo_complete_) {
+                inhSol_.add(solution);
+              } else {
+                hSol_.add(solution);
+              }
+              std::copy(solution, solution + nc_, sol.begin());
             }
           }
         } else 
@@ -460,9 +558,13 @@ namespace ceta {
         if (is_zero(remainder, remainder + nr_)) {
           // Add top solution to proper list of solutions
           stack_.pop();
-          result = homo_complete_ ?
-                   inhSol_.add(solution) :
-                     hSol_.add(solution);
+          result = true;
+          if (homo_complete_) {
+            inhSol_.add(solution);
+          } else {
+            hSol_.add(solution);
+          }
+          std::copy(solution, solution + nc_, sol.begin());
         } else { // if top of stack is not a solution
           // Search for which variables to increment further
           //
@@ -509,7 +611,7 @@ namespace ceta {
     #endif
     #endif
       // If we cleared the stack and never found a solution
-      if (result == NULL) {
+      if (result == false) {
         // We are definately done with homogeneous equations.
         homo_complete_ = true;
       }
@@ -537,6 +639,7 @@ namespace ceta {
     size_t* nodesExplored;
 #endif
   };
+#endif
 
   ld_solver_t::ld_solver_t(size_t nr, size_t nc, const int* coef)
     : solver_(new ld_solver_impl(nr, nc, coef)) {
@@ -550,8 +653,8 @@ namespace ceta {
     solver_->solve(v);
   }
   
-  const unsigned* ld_solver_t::next(void) {
-    return solver_->next();
+  const bool ld_solver_t::next(vector<unsigned>& sol) {
+    return solver_->next(sol);
   }
   
   size_t ld_solver_t::nr(void) const {

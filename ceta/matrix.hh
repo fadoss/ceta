@@ -73,24 +73,34 @@ namespace ceta {
     return result;
   }
   
+  /**
+   * A view of an array that exposes elements as a matrix in row-major
+   * order.
+   */
   template<typename T>
   class row_matrix_view {
   public:
     typedef T value_type;
     typedef T& reference;
     typedef const T& const_reference;
+    /** Modifiable type returned by row() that may be treated as an array. */
     typedef T* row_type;
+    /** Const type returned by row() that may be treated as an array. */
     typedef const T* const_row_type;
   
+    /** Constructs a new row matrix view. */
     row_matrix_view(size_t nr, size_t nc, T* elts)
-      : nc_(nc),
+      : nr_(nr),
+        nc_(nc),
         elts_(elts) {
     }
 
+    /** Returns number of rows in matrix. */
     size_t nr(void) const {
       return nr_;
     }
 
+    /** Returns number of columns in matrix. */
     size_t nc(void) const {
       return nc_;
     }
@@ -111,17 +121,26 @@ namespace ceta {
       return elts_ + r * nc_;
     }
   private:
-    size_t nr_;
-    size_t nc_;
+    const size_t nr_;
+    const size_t nc_;
     T* elts_;
   };
   
+  /**
+   * A helper method that allows constructing a row_matrix_view without
+   * naming the element type explicitly.
+   * \relates row_matrix_view
+   */
   template<typename T>
   row_matrix_view<T>
   make_row_matrix_view(size_t nr, size_t nc, T* elts) {
     return row_matrix_view<T>(nr, nc, elts);
   }
   
+  /**
+   * A view of an array that exposes elements as a matrix in column-major
+   * order.
+   */
   template<typename T>
   class col_matrix_view {
   public:
@@ -154,6 +173,11 @@ namespace ceta {
     T* elts_;
   };
   
+  /**
+   * A helper method that allows constructing a col_matrix_view without
+   * naming the element type explicitly.
+   * \relates col_matrix_view
+   */
   template<typename T>
   col_matrix_view<T>
   make_col_matrix_view(size_t nr, size_t nc, T* elts) {
@@ -188,12 +212,12 @@ namespace ceta {
   }
   
 
+  /** Resizable matrix for which rows may be retrieved as vectors. */
   template<typename T>
   class row_matrix {
   public:
     typedef T value_type;
     typedef std::vector<T> row_type;
-    typedef std::vector< row_type > storage_type;
     typedef typename row_type::reference reference;
     typedef typename row_type::const_reference const_reference;
   
@@ -260,6 +284,7 @@ namespace ceta {
       return row(r)[c];
     }
   private:
+    typedef std::vector< row_type > storage_type;
     size_t nr_;
     size_t nc_;
     /** Elements of matrix stored in column major order. */

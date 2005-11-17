@@ -66,7 +66,7 @@ void combinations(F& fn,
   // Indicates if there are any new inputs
   bool has_new_inputs = false;
   // Last entry in last_inputs with new inputs
-  LI* last_new_input;
+  LI* last_new_input = NULL;
 
   // Initialize last_inputs, has_new_inputs, and last_new_input.
   {

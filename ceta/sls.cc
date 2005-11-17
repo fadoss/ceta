@@ -109,6 +109,7 @@ namespace ceta {
       }
       ld_solver_t s(dim_, periods_.size(), coef);
     
+      vector<unsigned> sol(periods_.size());
       bool found(false);
       for (iterator ic(constants_.begin()); 
            !found && (ic != constants_.end());
@@ -121,7 +122,7 @@ namespace ceta {
     
           // Solve for diff
           s.solve(diff);
-          found = (s.next() != NULL);
+          found = s.next(sol);
         }
       }
       return found;
@@ -347,9 +348,9 @@ namespace impl {
    */
   template<class O>
   void retrieve_solutions(ld_solver_t& s, O o) {
-    const unsigned* sol(NULL);
-    while ((sol = s.next()) != NULL) {
-      *o = sol;
+    vector<unsigned> sol(s.nc());
+    while (s.next(sol)) {
+      *o = &sol[0];
       ++o;
     }
   }
@@ -856,7 +857,7 @@ namespace impl {
   }
   
   static
-  sign_vector make_sign_vector(size_t dim, const unsigned* v) {
+  sign_vector make_sign_vector(size_t dim, const vector<unsigned>& v) {
     sign_vector result(dim);
     for (size_t i(0); i != dim; ++i) {
       if (v[dim+i] > 0) {
@@ -884,7 +885,7 @@ namespace impl {
   }
   
   
-  typedef map<sign_vector, set<const unsigned*> > sign_map_t;
+  typedef map<sign_vector, set<vector<unsigned> > > sign_map_t;
   
   static
   set<sign_vector> most_specific_signs(const sign_map_t& types) {
@@ -1027,10 +1028,10 @@ namespace impl {
   
     // Mapping from each type to solutions with that type
     sign_map_t sign_map;
-    const unsigned* next;
-    while ((next = solver.next()) != NULL) {
+    vector<unsigned> next(3 * dim);
+    while (solver.next(next)) {
       // Need to check that x should not be both positive and negative
-      bool addSol(true);
+      bool addSol = true;
       for (size_t i(0); addSol && (i != dim); ++i) {
         addSol = (next[dim + i] == 0) || (next[2 * dim + i] == 0);
       }
@@ -1079,15 +1080,15 @@ namespace impl {
                  ++pidx) {
               isCons = (im->first[*pidx] != 0);
             }
-            set<const unsigned*>& solset(im->second);
-            for (set<const unsigned*>::iterator iv(solset.begin());
+            set< vector<unsigned> >& solset(im->second);
+            for (set< vector<unsigned> >::iterator iv(solset.begin());
                  iv != solset.end();
                  ++iv) {
               // insert_constant and period will just add first g.dim()
               // values to new_group
               if (isCons) 
-                new_group.insert_constant(*iv);
-              new_group.insert_period(*iv);
+                new_group.insert_constant(&(*iv)[0]);
+              new_group.insert_period(&(*iv)[0]);
             }
           }
         }
@@ -1107,8 +1108,8 @@ namespace impl {
   
     valid_group.insert_constant(zero_vector);
   
-    typedef map<sign_vector, set<const unsigned*> >::iterator sign_iter;
-    for (sign_iter im(sign_map.begin()); im != sign_map.end(); ++im) {
+    typedef map<sign_vector, set< vector<unsigned> > >::iterator sign_iter;
+    for (sign_iter im = sign_map.begin(); im != sign_map.end(); ++im) {
       bool validsol(true);
       for (size_t i(0); validsol && (i != np); ++i) {
         validsol = (im->first[i] != pos_sign);
@@ -1118,12 +1119,12 @@ namespace impl {
       }
       if (validsol) {
         // Add each solution to set
-        for (set<const unsigned*>::iterator iv(im->second.begin());
+        for (set< vector<unsigned> >::iterator iv = im->second.begin();
              iv != im->second.end();
              ++iv) {
           unsigned v[dim + np];
-          std::copy(*iv, *iv + dim, v);
-          std::copy(*iv + 2*dim, *iv + 2*dim + np, v + dim);
+          std::copy(iv->begin(), iv->begin() + dim, v);
+          std::copy(iv->begin() + 2*dim, iv->begin() + 2*dim + np, v + dim);
           valid_group.insert_period(v);
         }
       }
@@ -1240,8 +1241,8 @@ namespace ceta {
    */
   static
   semilinear_set complement(const linear_set_group& g) {
-    semilinear_set zc(
-        zero_complement(g.dim(), g.periods().begin(), g.periods().end()));
+    semilinear_set zc 
+        = zero_complement(g.dim(), g.periods().begin(), g.periods().end());
   
     semilinear_set result(complete_set(g.dim()));
   

@@ -68,8 +68,8 @@ namespace ceta {
    */
   template <typename I>
   range_writer<I>
-  make_range_writer(I begin, I end) {
-    return range_writer<I,std::string>(begin, end, " ");
+  make_range_writer(I begin, I end, const std::string& spacer = " ") {
+    return range_writer<I,std::string>(begin, end, spacer);
   }
   
   /** 

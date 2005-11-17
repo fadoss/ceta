@@ -94,20 +94,29 @@ void test_simple() {
   op_t b = make_constant("b", l); add_op(theory, b);
   op_t c = make_constant("c", k); add_op(theory, c);
   op_t f = make_binary_op("f", k, k, k); add_op(theory, f);
-  set_axioms(theory, a, assoc() | comm());
+  set_axioms(theory, f, assoc());
   op_t g = make_binary_op("g", k, k, k); add_op(theory, g);
   set_axioms(theory, g, comm());
+  op_t h = make_binary_op("h", k, k, k); add_op(theory, h);
+  set_axioms(theory, h, assoc() | comm());
 
   ta_t ta(theory);
   state_t k1(k, "k1"); add_state(ta, k1);
+  state_t k2(k, "k2"); add_state(ta, k2);
 
-//  add_transition(ta, a, no_args(), k1);
-//
-//  emptiness_result result = ta.check_emptiness();
-//  if (! result.is_empty()) {
-//    cerr << "ERR " << result.accepted_term() << endl;
-//    sig_error("Automata expected to be empty");
-//  }
+  add_rule(ta, make_constant_rule(a, k1));
+  add_rule(ta, make_binary_rule(f, k1, k1, k2));
+
+  test_result_t result = test_emptiness(ta);
+  if (!result) {
+    cerr << "ERR " << counterexample(result) << endl;
+    sig_error("Automata expected to be empty");
+  }
+
+  set_predicate(ta, k2);
+  result = test_emptiness(ta);
+  if (result)
+    sig_error("Automata expected to be nonempty");
 }
 
 void test_nat_mset_sum() {
@@ -200,22 +209,35 @@ void test_nat_mset_sum() {
 //  }
 }
 
-template<typename T>
-ostream& operator<<(ostream& o, const set<T>& s) {
-  o << "{";
-  typedef typename set<T>::const_iterator set_iter;
-  set_iter i = s.begin();
-  set_iter end = s.end();
-  if (i != end) {
-    o << *i;
-    ++i;
-    while (i != end) {
-      o << ", " << *i;
-      ++i;
-    }
-  }
-  o << "}";
-  return o;
+void test_and(void) {
+  theory_t theory;
+  // Add kind.
+  kind_t k("Bool"); add_kind(theory, k);
+  
+  // Add op declarations
+  op_t true_op  = make_constant("true", k);  add_op(theory, true_op);
+  op_t false_op = make_constant("false", k); add_op(theory, false_op);
+  op_t and_op = make_binary_op("and", k, k, k); add_op(theory, and_op);
+  set_axioms(theory, and_op, assoc() | comm());
+
+  ta_t ta(theory);
+
+  // Add state declarations
+  state_t term1(k, "Term1"); add_state(ta, term1);
+  state_t term2(k, "Term2"); add_state(ta, term2);
+  state_t cbool(k, "cBool"); add_state(ta, cbool);
+  state_t rbool(k, "rBool"); add_state(ta, rbool);
+
+  add_rule(ta, make_constant_rule(true_op, cbool));
+  add_rule(ta, make_constant_rule(true_op, term1));
+  add_rule(ta, make_constant_rule(false_op, cbool));
+  add_rule(ta, make_constant_rule(false_op, term2));
+  add_rule(ta, make_rule(and_op, list_of(term1)(cbool), rbool));
+  add_rule(ta, make_rule(and_op, list_of(term2)(cbool), rbool));
+
+  set_predicate(ta, !cbool & !rbool);
+
+  test_result_t result = test_emptiness(ta);
 }
 
 void test_nat_mset_sum_id() {
@@ -341,7 +363,8 @@ int main(int argc, char **argv) {
   try {
     test_predicate();
     // Test number with natural numbers and multisets
-//   test_simple();
+   test_simple();
+   test_and();
 //    test_nat_mset_sum();
     test_nat_mset_sum_id();
     return 0;

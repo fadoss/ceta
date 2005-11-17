@@ -1,5 +1,7 @@
 #include "closure.hh"
 
+#include <iostream>
+
 using namespace std;
 using namespace ceta;
 using namespace ceta::closure;
