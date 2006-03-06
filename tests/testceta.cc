@@ -11,79 +11,14 @@ using namespace std;
 using namespace ceta;
 using namespace boost::assign;
 
-op_t make_op(const std::string& name,
-             const list<kind_t>& inputs,
-             kind_t output) {
-  return op_t(name, inputs.begin(), inputs.end(), output);
-}
-
 rule_t make_rule(const op_t& op, const list<state_t>& lhs_states,
                  const state_t& rhs) {
   return rule_t(op, lhs_states.begin(), lhs_states.end(), rhs);
 }
 
-//void add_transition(tree_automaton_t& a, op_t o, const list<state_t>& args, state_t rhs) {
-//  state_t arg_elts[args.size()];
-//  std::copy(args.begin(), args.end(), arg_elts);
-//  a.add_transition(o, arg_elts, arg_elts + args.size(), rhs);
-//}
-
 void sig_error(const std::string& str) {
   cerr << str << endl;
   *static_cast<int*>(NULL) = 2;
-}
-
-void check_model(const state_predicate_t& p,
-                 const set<state_t>& set,
-                 bool expected,
-                 const std::string& pred_name,
-                 const std::string& set_name) {
-  std::string pos = (expected ? "" : "not ");
-  std::string neg = (expected ? "not " : "");
-//  if (p.is_model(set) != expected)
-//    sig_error(set_name + " is " + neg + "a model of " + pred_name);
-//  if ((!p).is_model(set) == expected)
-//    sig_error(set_name + " is " + pos + "a model of !" + pred_name);
-}
-
-void test_predicate() {
-//  kind_t k("k");
-//
-//  theory_t theory;
-//  theory.add_kind(k);
-//
-//  ta_t ta(theory);
-//
-//  state_t a(k, "a"); ta.add_state(a);
-//  state_t b(k, "b"); ta.add_state(b);
-//  state_t c(k, "c"); ta.add_state(c);
-//  state_t d(k, "d"); ta.add_state(d);
-//
-//  state_predicate_t ap(a);
-//  state_predicate_t bp(b);
-//
-//  set<state_t> emptyset;
-//
-//  set<state_t> aset;
-//  aset.insert(a);
-//  
-//  set<state_t> abset;
-//  abset.insert(a);
-//  abset.insert(b);
-//
-//  check_model(ap, emptyset, false, "a", "emptyset");
-//
-//  cerr << !(a & b) << endl;
-//  cerr << !(a | b) << endl;
-//
-//  check_model(a & b, abset, true, "a & b", "abset");
-//  check_model(a & b & c, abset, false, "a & b & c", "abset");
-//  check_model(a | b, abset, true, "a | b", "abset");
-//  check_model(a | b, aset, true, "a | b", "aset");
-//  check_model(a | b, emptyset, false, "a | b", "emptyset");
-//  check_model(state_predicate_t(true), aset, true, "true", "aset");
-//  check_model(state_predicate_t(false), aset, false, "false", "aset");
-//
 }
 
 void test_simple() {
@@ -119,101 +54,11 @@ void test_simple() {
     sig_error("Automata expected to be nonempty");
 }
 
-void test_nat_mset_sum() {
-//  tree_automaton_t ta;
-//  kind_t k = ta.add_kind("k");
-//
-//  // Add operator declarations
-//  op_t zero = add_op(ta, "0", constant(), k);
-//  op_t succ = add_op(ta, "s", list_of(k), k);
-//  op_t plus = add_op(ta, "+", list_of(k)(k), k);
-//  ta.add_comm_axiom(plus);
-//  op_t cat  = add_op(ta, "__", list_of(k)(k), k);
-//  ta.add_assoc_axiom(cat);
-//  ta.add_comm_axiom(cat);
-//  op_t sum  = add_op(ta, "sum", list_of(k), k);
-//
-//  // Add states for sorts
-//  state_t  cNat = ta.add_state(k, "cNat");
-//  state_t cMSet = ta.add_state(k, "cMSet");
-//  state_t  dNat = ta.add_state(k, "dNat");
-//  state_t dMSet = ta.add_state(k, "dMSet");
-//  state_t  rNAT = ta.add_state(k, "rNAT");
-//  state_t  kNAT = ta.add_state(k, "kNAT");
-//
-//  // Add states for specific terms in equations
-//  state_t q0 = ta.add_state(k, "q0"); // Accepts 0
-//  state_t q1 = ta.add_state(k, "q1"); // Accepts 0 cMSet 
-//  state_t q2 = ta.add_state(k, "q2"); // Accepts s(cNat)
-//  state_t q3 = ta.add_state(k, "q3"); // Accepts s(cNat) cMSet
-//
-//  // Add Epsilon transitions for subsort declarations
-//  ta.add_transition(cNat, cMSet);
-//  ta.add_transition(dNat, dMSet);
-//
-//  // Rules for constructor subsignature
-//  add_transition(ta, zero, no_args(), cNat);
-//  add_transition(ta, succ, list_of(cNat), cNat);
-//  add_transition(ta, cat, list_of(cMSet)(cMSet), cMSet);
-//
-//  // Rules for defined signature
-//  add_transition(ta, plus, list_of(cNat)(cNat), dNat);
-//  add_transition(ta, sum, list_of(cMSet), dNat);
-//
-//  // Rules for recognizing terms used in equations:
-//  //   0 => q0
-//  add_transition(ta, zero, no_args(), q0);
-//  //   s(cNat) => q2
-//  add_transition(ta, succ, list_of(cNat), q2);
-//  //   +(s(cNat), cNat) => rNAT
-//  add_transition(ta, plus, list_of(q2)(cNat), rNAT);
-//  //   +(0, 0) => rNAT
-//  add_transition(ta, plus, list_of(q0)(q0), rNAT);
-//  
-//  // Recognize sum(0 NatMSet) =>rNAT
-//  add_transition(ta, cat, list_of(q0)(cMSet), q1);
-//  add_transition(ta, sum, list_of(q1), rNAT);
-//  // Recognize sum(s(Nat) NatMSet) => rNAT
-//  add_transition(ta, cat, list_of(q2)(cMSet), q3);
-//  add_transition(ta, sum, list_of(q3), rNAT);
-//  // Recognize sum(0) => rNAT
-//  add_transition(ta, sum, list_of(q0), rNAT);
-//  // Recognize sum(s(Nat)) => rNAT
-//  add_transition(ta, sum, list_of(q2), rNAT);
-//
-//  // Rules for maintaining rNat
-//  add_transition(ta, succ, list_of(rNAT), rNAT);
-//  add_transition(ta, cat, list_of(rNAT)(kNAT), rNAT);
-//  add_transition(ta, cat, list_of(kNAT)(rNAT), rNAT);
-//  add_transition(ta, sum, list_of(rNAT), rNAT);
-//
-//  // Rules for kNat
-//  add_transition(ta, zero, no_args(), kNAT);
-//  add_transition(ta, succ, list_of(kNAT), kNAT);
-//  add_transition(ta, cat, list_of(kNAT)(kNAT), kNAT);
-//  add_transition(ta, plus, list_of(kNAT)(kNAT), kNAT);
-//  add_transition(ta, sum, list_of(kNAT), kNAT);
-//  
-//  ta.predicate(k) = !rNAT & (dNat & !cNat | dMSet & !cMSet);
-//
-//  emptiness_result result = ta.check_emptiness();
-//  if (! result.is_empty()) {
-//    //const set<state>& states(result->second);
-//    //for (set<state>::const_iterator i(states.begin());
-//    //     i != states.end();
-//    //     ++i) {
-//    //  cerr << *i << " ";
-//    //}
-//    //cerr << endl;
-//    sig_error("Automata expected to be empty");
-//  }
-}
-
 void test_and(void) {
   theory_t theory;
   // Add kind.
   kind_t k("Bool"); add_kind(theory, k);
-  
+
   // Add op declarations
   op_t true_op  = make_constant("true", k);  add_op(theory, true_op);
   op_t false_op = make_constant("false", k); add_op(theory, false_op);
@@ -280,7 +125,7 @@ void test_nat_mset_sum_id() {
   // 0 => q0
   add_rule(ta, make_constant_rule(zero, q0));
   // kNAT
-  add_rule(ta, make_rule(zero, list<state_t>(), kNAT)); 
+  add_rule(ta, make_constant_rule(zero, kNAT));
 
   // Succ
   // s(cNAT) => cNAT
@@ -321,7 +166,7 @@ void test_nat_mset_sum_id() {
   add_rule(ta, make_rule(cat, list_of(cMSet)(cMSet), cMSet));
   // 0 cMSet => q1
   add_rule(ta, make_rule(cat, list_of(q0)(cMSet), q1));
-  // s(cNat) cMSet => q3 
+  // s(cNat) cMSet => q3
   add_rule(ta, make_rule(cat, list_of(q2)(cMSet), q3));
   // kNAT
   add_rule(ta, make_rule(cat,  list_of(kNAT)(kNAT), kNAT));
@@ -351,22 +196,38 @@ void test_nat_mset_sum_id() {
 
   if (!result) {
     cerr << "ERR "
-         << counterexample(result) 
+         << counterexample(result)
          << " "
          << reachable_set(result)
-         << endl; 
+         << endl;
     sig_error("Automata expected to be empty");
   }
 }
 
+void test_intersect() {
+  theory_t theory;
+  kind_t k = *add_kind(theory, kind_t("k"));
+  op_t a = *add_op(theory, make_constant("a", k));
+
+  ta_t ta(theory);
+  state_t p = *add_state(ta, state_t(k, "p"));
+  set_predicate(ta, p);
+
+  add_rule(ta, make_constant_rule(a, p));
+
+  ta_t t2 = ta;
+  ta_t t3 = ta & t2; // infinite loop
+  cerr << t3 << endl; 
+}
+
+
 int main(int argc, char **argv) {
   try {
-    test_predicate();
     // Test number with natural numbers and multisets
-   test_simple();
-   test_and();
-//    test_nat_mset_sum();
+    test_simple();
+    test_and();
     test_nat_mset_sum_id();
+    test_intersect();
     return 0;
   } catch (const exception& e) {
     cerr << e.what() << endl;

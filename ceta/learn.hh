@@ -1,15 +1,15 @@
-/* Copyright 2005 Joe Hendrix
- * 
+/* Copyright 2006 University of Illinois at Urbana-Champaign
+ *
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -84,7 +84,7 @@ std::ostream& operator<<(std::ostream& o,
 template<typename LeafLabel, typename BranchLabel>
 class decision_tree_t {
 public:
-  decision_tree_t(const LeafLabel& initial) 
+  decision_tree_t(const LeafLabel& initial)
     : nodes_(1, node_t(0, initial)),
       initial_(0) {
   }
@@ -124,7 +124,7 @@ public:
     if (is_leaf(branch)) throw std::logic_error("Node is not a branch.");
     return boost::get<branch_t>(nodes_[branch].data).label;
   }
-  
+
   /** Returns accepting child of branch. */
   size_t accept_child(size_t branch) const {
     if (!in_range(branch)) throw std::logic_error("Index is not a node.");
@@ -138,7 +138,7 @@ public:
   }
 
   /**
-   * Converts leaf node into a branch with given label.  
+   * Converts leaf node into a branch with given label.
    * The existing leaf node is made either the accepting or rejecting child
    * depending on whether cur_leaf_accepts is true.  The other child is
    * labeled with new_leaf.
@@ -155,22 +155,22 @@ public:
     size_t  cur_size = nodes_.size();
     nodes_.reserve(cur_size + 2);
     if (cur_leaf_accepts) {
-      nodes_.push_back(node_t(cur_leaf, leaf_label(cur_leaf))); 
+      nodes_.push_back(node_t(cur_leaf, leaf_label(cur_leaf)));
       nodes_.push_back(node_t(cur_leaf, new_leaf));
       // Update initial if it is moving.
-      if (cur_leaf == initial_) 
+      if (cur_leaf == initial_)
         initial_ = cur_size;
     } else {
       nodes_.push_back(node_t(cur_leaf, new_leaf));
-      nodes_.push_back(node_t(cur_leaf, leaf_label(cur_leaf))); 
+      nodes_.push_back(node_t(cur_leaf, leaf_label(cur_leaf)));
       // Update initial if it is moving.
-      if (cur_leaf == initial_) 
+      if (cur_leaf == initial_)
         initial_ = cur_size + 1;
     }
     nodes_[cur_leaf].data = branch_t(branch_label, cur_size);
   }
 
-  /** Returns path starting from this node and ending with the root. */ 
+  /** Returns path starting from this node and ending with the root. */
   const std::vector<size_t> path(size_t node) const {
     std::vector<size_t> result;
     while (node != 0) {
@@ -190,7 +190,7 @@ public:
     // While node is a branch
     while (!is_leaf(node)) {
       // Choose accept or reject child.
-      node = pred(branch_label(node)) 
+      node = pred(branch_label(node))
            ? accept_child(node)
            : reject_child(node);
     }
@@ -224,7 +224,7 @@ private:
   /** Private data structure for storing nodes. */
   struct node_t {
     /** Construct a leaf node. */
-    node_t(size_t parent_arg, const LeafLabel& label) 
+    node_t(size_t parent_arg, const LeafLabel& label)
       : parent(parent_arg),
         data(leaf_t(label)) {
     }
@@ -237,7 +237,7 @@ private:
   size_t initial_;
 };
 
-                     
+
 /**
  * A classification tree or distinguishing states in the dfa during
  * learning.  This class uses a binary membership function that should take
@@ -258,7 +258,7 @@ public:
   /**
    * Construct a new classifier for a machine with the given initial state.
    */
-  classifier_t(const State& initial) 
+  classifier_t(const State& initial)
     : tree_(shared_state_ptr(new State(initial))) {
   }
 
@@ -279,7 +279,7 @@ public:
   /**
    * Analyzes the trace to discover new distiguishable states that the
    * classifier does not already know about.  The trace iterators enumerate
-   * an Alphabet String.  The StateIterator enumerates the state string 
+   * an Alphabet String.  The StateIterator enumerates the state string
    * along that path.  The first state corresponds to the initial state and
    * the ith following state corresponds to the state after reading i values
    * from the trace.
@@ -294,7 +294,7 @@ public:
     // If there is only zero or one states, then we can learn nothing
     if (std::distance(state_begin, state_end) <= 1)
       return;
-    
+
     // If root is a leaf, then there must just be one state -- the initial
     // state.
     if (tree_.is_leaf(0)) {
@@ -353,13 +353,13 @@ public:
 
         // Determine whether lookup representative was along accepting path
         // with distinguisher.
-        bool lookup_accept = 
+        bool lookup_accept =
               tree_.accept_child(lowest_common) == lookup_ancestor;
 
         // Backup to state with common representative.
         --istate;
         // Create new distinguisher.
-        cons_list_t<Alphabet> 
+        cons_list_t<Alphabet>
                 new_d(*itrace, tree_.branch_label(lowest_common));
         // Insert new parent branch for prev_rep.
         insert_parent_branch(prev_rep, new_d, lookup_accept, *istate);
@@ -423,13 +423,13 @@ private:
     }
     return *ix;
   }
-  
+
   /** Constructs a new branch as a parent to insert_point. */
   void insert_parent_branch(size_t insert_point,
-                            const cons_list_t<Alphabet>& d, 
+                            const cons_list_t<Alphabet>& d,
                             bool insert_point_accepts,
                             const State& new_state) {
-    tree_.make_branch(insert_point, d, insert_point_accepts, 
+    tree_.make_branch(insert_point, d, insert_point_accepts,
                       shared_state_ptr(new State(new_state)));
   }
   /** Classification tree. */

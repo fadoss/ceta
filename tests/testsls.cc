@@ -28,10 +28,10 @@ linear_set_group init(size_t dim,
 }
 
 void testSLS(void) {
-  unsigned c1[][3] 
+  unsigned c1[][3]
     = {{0, 0, 0},
        {1, 1, 1}};
-  unsigned p1[][3] 
+  unsigned p1[][3]
     = {{1, 1, 1},
        {4, 4, 7},
        {10, 10, 13},
@@ -107,7 +107,7 @@ void testSLS(void) {
 // x = y > z
 //110 + 110 111
 
-//001 + 001 
+//001 + 001
 
 int main(int argc, char **argv)
 {

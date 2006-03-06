@@ -45,9 +45,9 @@ void testRat() {
   if (a / b < d) error("");
   if (a + d > rational(5, 4)) error("");
 
-  a = b; 
+  a = b;
   a += c;
-  if (a != rational(1)) error("1 != 1"); 
+  if (a != rational(1)) error("1 != 1");
   a -= c;
   if (a != b) error("2/3 != 2/3");
 
@@ -104,7 +104,7 @@ void testLU() {
   if (x[0] != rational(2)) error("x[0]");
   if (x[1] != rational(1)) error("x[1]");
 
-  
+
   int m2vals[] =
       {1, 2, 4,
        2, 5, 6,
@@ -115,14 +115,14 @@ void testLU() {
   if (a.det() != 0) error("a.det()");
   if (m2.det() != -13) error("m2.det()");
 
-  int m3vals[] = 
+  int m3vals[] =
       {4, 10, 1,  0, -2,
        4, 10, 1, -2,  0,
        7, 13, 4,  0  -2};
   LU<rational> m3(3, 5, row_matrix_view<int>(3, 5, m3vals));
   if (m3.rank() != 3) error("m3.rank");
 
-  int m4vals[] = 
+  int m4vals[] =
       { 0,  0, -1,
         0, -2,  0,
         1, -1,  0};

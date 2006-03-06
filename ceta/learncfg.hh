@@ -1,4 +1,4 @@
-/* Copyright 2005 Joe Hendrix
+/* Copyright 2006 University of Illinois at Urbana-Champaign
  *
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,14 +25,8 @@
 // subset of states when viewed by some other symbol.
 // - Can I guarantee finding an accepting tree if one exists?
 
-#include <deque>
-#include <map>
-#include <set>
-#include <utility>
-
 #include <boost/none.hpp>
 #include <boost/optional/optional.hpp>
-#include <boost/variant.hpp>
 
 #include "earley.hh"
 #include "learn.hh"
@@ -180,11 +174,11 @@ namespace cfg {
       // Get Earley trace for current node.
       earley_trace_t<Nonterminal> trace = dtree_.leaf_label(node).second;
       // Advance parse.
-      typedef std::set< std::pair<size_t, Nonterminal> > generated_set_t;
+      typedef std::set< prefix_pair_t<Nonterminal> > generated_set_t;
       const std::set<Nonterminal>& found = trules_.find(t)->second;
       generated_set_t gen = parse(rules_, trace, found.begin(), found.end());
       // See if parse accepts.
-      bool accepts = gen.count(std::make_pair(0, nt_));
+      bool accepts = gen.count(prefix_pair_t<Nonterminal>(0, nt_));
       // Get representative.
       return find_node(trace, accepts);
     }
@@ -252,7 +246,7 @@ namespace cfg {
         return empty_accepts;
       } else {
         trace_t cur_trace = trace;
-        typedef std::set< std::pair<size_t, Nonterminal> > generated_set_t;
+        typedef std::set< prefix_pair_t<Nonterminal> > generated_set_t;
         generated_set_t gen;
         cons_list_t<Terminal> d = distinguisher;
         while (!d.empty()) {
@@ -261,7 +255,7 @@ namespace cfg {
           gen = parse(rules_, cur_trace, found.begin(), found.end());
           d = d.rest();
         }
-        return gen.count(std::make_pair(0, nt_)) > 0;
+        return gen.count(prefix_pair_t<Nonterminal>(0, nt_)) > 0;
       }
     }
 
@@ -557,7 +551,7 @@ namespace cfg {
       cfg_subset_t<Terminal, Nonterminal> result(trace_);
 
       // Parse terminal with result's trace.
-      typedef std::set< std::pair<size_t, Nonterminal> > generated_set_t;
+      typedef std::set< prefix_pair_t<Nonterminal> > generated_set_t;
       const std::set<Nonterminal>& found = map.generators(terminal);
       // Set of recognitions.
       generated_set_t gen =
@@ -573,7 +567,7 @@ namespace cfg {
         const cfg_tree_t<Terminal, Nonterminal>& tree = map[nt];
         size_t cur_node = tree.next_node(prev_node, terminal);
 
-        bool trace_accept = gen.count(std::make_pair(0, nt)) > 0;
+        bool trace_accept = gen.count(prefix_pair_t<Nonterminal>(0, nt)) > 0;
         opt_split_t split =
                 check_next_node(tree, path_, prev_node, terminal,
                                 cur_node, result.trace_, trace_accept);
@@ -681,7 +675,7 @@ namespace cfg {
                    const Terminal& terminal,
                    size_t cur_node,
                    const trace_t& trace,
-                   const std::set< std::pair<size_t, Nonterminal> >& gen,
+                   const std::set< prefix_pair_t<Nonterminal> >& gen,
                    const std::set<size_t>& start_indices) {
       const Nonterminal& nt = tree.nonterminal();
       // For each start index.
@@ -693,7 +687,8 @@ namespace cfg {
                                           prev_path.end());
         earley_trace_t<Nonterminal> suffix_trace = trace.suffix(cur_start);
         // Determine if trace recognized nonterminal at start index.
-        bool suffix_accepts = gen.count(std::make_pair(cur_start, nt)) > 0;
+        bool suffix_accepts
+                = gen.count(prefix_pair_t<Nonterminal>(cur_start, nt)) > 0;
         // Check suffix
         typedef boost::optional<split_t> opt_split_t;
         opt_split_t result =
@@ -747,11 +742,12 @@ namespace cfg {
     return o;
   }
 
+  /** Queue that tracks when nonterminal is known to be nonempty. */
   template<typename Terminal, typename Nonterminal>
-  class instance_map_t {
+  class nonempty_queue_t {
   public:
     template<typename RuleIterator>
-    instance_map_t(RuleIterator rules_begin, RuleIterator rules_end) {
+    nonempty_queue_t(RuleIterator rules_begin, RuleIterator rules_end) {
       for (RuleIterator i = rules_begin; i != rules_end; ++i) {
         const cfg_rule_t<Nonterminal>& cur_rule = *i;
         // See if rule's lhs is in either argument.
@@ -765,24 +761,19 @@ namespace cfg {
       }
     }
 
+    /** Add a new terminal symbol to list of terminals known by queue. */
     template<typename NonterminalIterator>
     void add_terminal(const Terminal& terminal,
                       NonterminalIterator nt_begin,
                       NonterminalIterator nt_end) {
       // Set that contains nonteminals we need to check for a shorter string.
       std::set<Nonterminal> smaller_nonterminals;
-      // Initialize new with terminal.
+      // Add any nonterminals discovered with terminal.
       for (NonterminalIterator i = nt_begin; i != nt_end; ++i) {
-        // Find iterator for current nonterminal in instance map.
-        instance_iter cur_instance = instances_.find(*i);
-        // If there nonterminal is not bound.
-        if (cur_instance == instances_.end()) {
-          // Add new instance with terminal and update smaller nonterminals.
-          add_new_instance(*i, instance_t(1, terminal));
-          smaller_nonterminals.insert(*i);
-        // Else if nonterminal is bound to a vector with size > 1
-        } else if (cur_instance->second.size() > 1) {
-          // Replace vector with terminal and add to smaller.
+        // Get pointer to instance if length less than 1.
+        instance_iter cur_instance = add_instance(*i, 1);
+        // Update instance if valid.
+        if (cur_instance != instances_.end()) {
           cur_instance->second = instance_t(1, terminal);
           smaller_nonterminals.insert(*i);
         }
@@ -807,17 +798,11 @@ namespace cfg {
             const instance_t& first = first_iter->second;
             const instance_t& second = second_iter->second;
 
-            // Find iterator for lhs in instances.
-            instance_iter lhs_iter = instances_.find(i->lhs);
-            // If lhs is not bound.
-            if (lhs_iter == instances_.end()) {
-              // Add new instance for lhs.
-              add_new_instance(i->lhs, make_instance(first, second));
-              smaller_nonterminals.insert(i->lhs);
-            } else if (lhs_iter->second.size()
-                    > first.size() + second.size()) {
-              // Replace vector with terminace and add to smaller.
-              lhs_iter->second = make_instance(first, second);
+            // Update instance if it is shorter
+            instance_iter cur_instance
+                    = add_instance(i->lhs, first.size() + second.size());
+            if (cur_instance != instances_.end()) {
+              cur_instance->second = make_instance(first, second);
               smaller_nonterminals.insert(i->lhs);
             }
           }
@@ -825,18 +810,22 @@ namespace cfg {
       }
     }
 
+    /** If there is a nonterminal to return. */
     bool has_next(void) const {
       return !queue_.empty();
     }
 
+    /** Returns next non-empty nonterminal. */
     const Nonterminal& next_nonterminal(void) const {
       return queue_.front()->first;
     }
 
+    /** Returns string generated by next nonterminal. */
     const std::vector<Terminal>& next_instance(void) const {
       return queue_.front()->second;
     }
 
+    /** Pops next nonterminal from queue. */
     void pop_next(void) {
       queue_.pop_front();
     }
@@ -857,12 +846,24 @@ namespace cfg {
       return result;
     }
 
-    /** Adds new entry to instances and appends to queue. */
-    instance_iter
-    add_new_instance(const Nonterminal& nt, const instance_t& t) {
-      instance_iter result = instances_.insert(std::make_pair(nt, t)).first;
-      queue_.push_back(result);
-      return result;
+    /**
+     * Returns pointer to instance if it is not bound or len is less than
+     * current instance length.
+     */
+    instance_iter add_instance(const Nonterminal& nt, size_t len) {
+      // Find iterator for current nonterminal in instance map.
+      instance_iter cur_instance = instances_.find(nt);
+      // If there nonterminal is not bound.
+      if (cur_instance == instances_.end()) {
+        // Add new instance with terminal and update smaller nonterminals.
+        cur_instance = instances_.insert(
+                std::make_pair(nt, instance_t())).first;
+        queue_.push_back(cur_instance);
+      // Else if nonterminal is bound to a vector with size less than len.
+      } else if (cur_instance->second.size() <= len) {
+        cur_instance = instances_.end();
+      }
+      return cur_instance;
     }
 
     /** Returns rules associated as implications of rhs. */
@@ -994,20 +995,17 @@ namespace cfg {
   };
 
   /**
-   * This class searches a context free grammar to compute all of the
-   * subsets of the nonterminals that generate a common string.  It is
-   * conjectured that if a subset of terminals generate a common string, the
-   * explorer will eventually return that subset.  However, this process
-   * will only terminate if the language generated by each nonterminal is
-   * regular.  The explorer is partially incremental in that new terminal
-   * symbols may be introduced as the search continues.
+   * Explorer of a context free grammar to compute all of the subsets of the
+   * nonterminals that generate a common string.  It is conjectured that if a
+   * subset of terminals generate a common string, the explorer will
+   * eventually return that subset.  However, this process will only
+   * terminate if the language generated by each nonterminal is regular.  The
+   * explorer is partially incremental in that new terminal symbols may be
+   * introduced as the search continues.
    */
   template<typename Terminal, typename Nonterminal>
   class cfg_explorer_t {
   public:
-    typedef chomsky_rules_t<Nonterminal> rules_t;
-    typedef earley_trace_t<Nonterminal> trace_t;
-    typedef cfg_subset_t<Terminal, Nonterminal> subset_t;
 
     /** Construct new explorer. */
     template<typename NonterminalIterator,
@@ -1017,15 +1015,9 @@ namespace cfg {
                    RuleIterator rules_begin,
                    RuleIterator rules_end)
       : tree_map_(rules_t(nt_begin, nt_end, rules_begin, rules_end)),
-        instances_(rules_begin, rules_end),
+        ne_queue_(rules_begin, rules_end),
         queue_(1),
         next_reachable_(reachables_.end()) {
-//      cerr << "Nonterminals {"
-//           << make_range_writer(nt_begin, nt_end, ", ")
-//           << "}" << endl;
-//      cerr << "Rules:" << endl
-//           << make_range_writer(rules_begin, rules_end, "\n")
-//           << endl;
       // Add initial subset.
       const std::set<Nonterminal>& nt_set = tree_map_.rules().nonterminals();
       add_subset(subset_t(nt_set.begin(), nt_set.end()));
@@ -1037,18 +1029,14 @@ namespace cfg {
                       NonterminalIterator nt_begin,
                       NonterminalIterator nt_end) {
       //TODO: Check that all nonterminals have already been registered.
-//      cerr << "Adding terminal " << terminal << " ::=";
-//      for (NonterminalIterator i = nt_begin; i != nt_end; ++i)
-//        cerr << " " << *i;
-//      cerr << endl;
-      instances_.add_terminal(terminal, nt_begin, nt_end);
+      ne_queue_.add_terminal(terminal, nt_begin, nt_end);
       tree_map_.add_terminal(terminal, nt_begin, nt_end);
       // Add each new exploration to pendings.
       queue_.add_terminal(terminal);
-      // While nonterminals are first noticed to be nont
-      while (instances_.has_next()) {
-        const Nonterminal& cur_nt = instances_.next_nonterminal();
-        const std::vector<Terminal>& cur_path = instances_.next_instance();
+      // While nonempty queue has new nonterminals that are nonempty.
+      while (ne_queue_.has_next()) {
+        const Nonterminal& cur_nt = ne_queue_.next_nonterminal();
+        const std::vector<Terminal>& cur_path = ne_queue_.next_instance();
 
         // Build trace for path
         const std::set<Nonterminal>& searches
@@ -1065,7 +1053,7 @@ namespace cfg {
         cons_list_t<Terminal> empty_d;
         cur_tree.make_branch(0, empty_d, false, cur_path, trace);
         recompute_after_split(cur_nt, 0);
-        instances_.pop_next();
+        ne_queue_.pop_next();
       }
 //      cerr << "Stop Adding terminal" << endl;
     }
@@ -1135,6 +1123,9 @@ namespace cfg {
       next_reachable_ = reachables_.end();
     }
   private:
+    typedef chomsky_rules_t<Nonterminal> rules_t;
+    typedef earley_trace_t<Nonterminal> trace_t;
+    typedef cfg_subset_t<Terminal, Nonterminal> subset_t;
     typedef std::pair<Nonterminal, size_t> node_t;
     typedef cfg_tree_t<Terminal, Nonterminal> tree_t;
 
@@ -1238,8 +1229,10 @@ namespace cfg {
     /** Decision trees for nonterminals. */
     cfg_tree_map_t<Terminal, Nonterminal> tree_map_;
 
-    /** Tracks when language for nonterminals are known to be nonempty. */
-    instance_map_t<Terminal, Nonterminal> instances_;
+    /**
+     * Queue that tracks when nonterminals are known to generate some string.
+     */
+    nonempty_queue_t<Terminal, Nonterminal> ne_queue_;
 
     // Invariants:
     // If an explore_t is in pendings_, it does not in any backlinks set.

@@ -1,4 +1,4 @@
-/* Copyright 2005 Joe Hendrix
+/* Copyright 2006 University of Illinois at Urbana-Champaign
  *
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,6 @@
  */
 
 #include <map>
-#include <ostream>
-#include <set>
-#include <vector>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/optional/optional.hpp>
@@ -445,6 +442,8 @@ namespace cfg {
     }
   }
 
+  //NOTE: This has been commented out in the hopes that one day I will
+  // start using this approach.
   /**
    * A parameterized class designed to allow semi-incremental Parikh
    * construction in which new terminal symbols may be introduces along with
@@ -545,7 +544,8 @@ namespace cfg {
     // Apply periods to pumped trees until completion.
     size_t pumped_count = 0;
     while (pumped_count != trees.pumped().size()) {
-      period_explore(trees, trees.pumped()[pumped_count]);
+      parikh_tree_t<Nonterminal> cur_tree = trees.pumped()[pumped_count];
+      period_explore(trees, cur_tree);
       ++pumped_count;
     }
 

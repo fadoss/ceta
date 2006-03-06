@@ -57,16 +57,16 @@ void test_mset() {
   size_t t1 = 1; g.add_terminal(t1); // {cNat, cMSet, kNAT, q2}
   size_t t2 = 2; g.add_terminal(t2); // {dNat, dMSet, kNAT, rNAT}
 
-  string cNat  = "cNat";  g.add_nonterminal(cNat); 
-  string cMSet = "cMSet"; g.add_nonterminal(cMSet); 
-  string dNat  = "dNat";  g.add_nonterminal(dNat); 
-  string dMSet = "dMSet"; g.add_nonterminal(dMSet); 
-  string rNAT  = "rNAT";  g.add_nonterminal(rNAT); 
-  string kNAT  = "kNAT";  g.add_nonterminal(kNAT); 
-  string q0    = "q0";    g.add_nonterminal(q0); 
-  string q1    = "q1";    g.add_nonterminal(q1); 
-  string q2    = "q2";    g.add_nonterminal(q2); 
-  string q3    = "q3";    g.add_nonterminal(q3); 
+  string cNat  = "cNat";  g.add_nonterminal(cNat);
+  string cMSet = "cMSet"; g.add_nonterminal(cMSet);
+  string dNat  = "dNat";  g.add_nonterminal(dNat);
+  string dMSet = "dMSet"; g.add_nonterminal(dMSet);
+  string rNAT  = "rNAT";  g.add_nonterminal(rNAT);
+  string kNAT  = "kNAT";  g.add_nonterminal(kNAT);
+  string q0    = "q0";    g.add_nonterminal(q0);
+  string q1    = "q1";    g.add_nonterminal(q1);
+  string q2    = "q2";    g.add_nonterminal(q2);
+  string q3    = "q3";    g.add_nonterminal(q3);
 
   g.add(make_rrule(cMSet, cMSet, cMSet));
   g.add(make_rrule(q1, q0, cMSet));
@@ -74,7 +74,7 @@ void test_mset() {
   g.add(make_rrule(rNAT, rNAT, kNAT));
   g.add(make_rrule(rNAT, kNAT, rNAT));
   g.add(make_rrule(kNAT, kNAT, kNAT));
-  
+
   g.add(make_trule(cNat,  t0));
   g.add(make_trule(cMSet, t0));
   g.add(make_trule(kNAT,  t0));
@@ -89,7 +89,7 @@ void test_mset() {
   g.add(make_trule(dMSet, t2));
   g.add(make_trule(kNAT,  t2));
   g.add(make_trule(rNAT,  t2));
-    
+
   typedef std::map<std::string, semilinear_set> parikh_map_t;
   parikh_map_t s = parikh_image(3, g);
 

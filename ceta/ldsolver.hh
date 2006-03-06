@@ -1,15 +1,15 @@
-/* Copyright 2005 Joe Hendrix
- * 
+/* Copyright 2006 University of Illinois at Urbana-Champaign
+ *
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -35,7 +35,7 @@ namespace ceta {
 
   /**
    * An incremental solver capable of computing the complete Hilbert basis
-   * for the solutions to a system of linear Diophantine equations.  
+   * for the solutions to a system of linear Diophantine equations.
    * The coefficient matrix A must be provided when the solver is
    * constructed, and <code>next</code> will successively new return minimal
    * non-zero solutions to Ax = 0.  To compute inhomongeneous solutions,
@@ -46,7 +46,7 @@ namespace ceta {
   public:
 
     /**
-     * Construct an ld_solver for a coefficient matrix stored in column 
+     * Construct an ld_solver for a coefficient matrix stored in column
      * major order.
      */
     ld_solver_t(size_t nr, size_t nc, const int* coef);
@@ -61,7 +61,7 @@ namespace ceta {
     /** Start computing minimal solutions for a vector v. */
     void solve(const int* v);
 
-    /** 
+    /**
      * Returns the next solution or <code>NULL</code> if there are no more
      * solutions.
      */

@@ -1,4 +1,4 @@
-/* Copyright 2005 Joe Hendrix
+/* Copyright 2006 University of Illinois at Urbana-Champaign
  * 
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,11 @@
  */
 #ifndef _bi_graph_hh_
 #define _bi_graph_hh_
+/**
+ * \file
+ * Defines a generic bi-partite directed graph that allows getting in and
+ * out of edges of each node.
+ */
 #include <map>
 #include <set>
 
@@ -27,9 +32,6 @@ namespace ceta {
   template<class Lhs, class Rhs>
   class bi_graph_t {
   public:
-    typedef std::map<Lhs, std::set<Rhs> > child_graph_t;
-    typedef std::map<Rhs, std::set<Lhs> > parent_graph_t;
-
     /** Returns true if graph contains an edge lhs -> rhs. */
     bool contains(Lhs lhs, Rhs rhs) const {
       child_iter i = children_.find(lhs);
@@ -88,6 +90,10 @@ namespace ceta {
       }
     }
   private:
+    /** Map storing forward edges. */
+    typedef std::map<Lhs, std::set<Rhs> > child_graph_t;
+    /** Map storing reversed edges. */
+    typedef std::map<Rhs, std::set<Lhs> > parent_graph_t;
     typedef typename child_graph_t::const_iterator child_iter;
     typedef typename parent_graph_t::const_iterator parent_iter;
     /** Map containing edges lhs -> rhs. */

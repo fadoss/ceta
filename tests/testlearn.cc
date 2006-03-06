@@ -48,7 +48,7 @@ public:
   }
   void advance(const Symbol& sym) {
     ++advance_count;
-    
+
     std::set<State> next = rules_->next_states(subset_.states(), sym);
     subset_
           = subset_t<Symbol, State>(subset_, sym, next.begin(), next.end());
@@ -58,12 +58,12 @@ private:
   const rule_set_t<Symbol, State>* rules_;
   /** Pointer to accepting states for dfa state. */
   const std::set<State>* accepting_states_;
-    
+
   subset_t<Symbol, State> subset_;
 };
 
 template<typename State, typename TraceIterator, typename OutputIterator>
-void write_states(const State& initial, 
+void write_states(const State& initial,
                   TraceIterator trace_begin, TraceIterator trace_end,
                   OutputIterator& o) {
   State cur_state = initial;
@@ -90,7 +90,7 @@ bool classifier_accept(const classifier_t<Alphabet, State>& c,
 }
 
 /**
- * Checks that learning algorithm correctly recognizes the DFA of an 
+ * Checks that learning algorithm correctly recognizes the DFA of an
  * automaton that checks if the 4th most previous symbol was 'a'.  This
  * results in a minimum DFA with 2^4 = 16 states.
  */
@@ -121,16 +121,16 @@ void test_memory() {
   advance_count = 0;
 
   // Analyze string
-  if (classifier_accept(c, trace.begin(), trace.end())) 
+  if (classifier_accept(c, trace.begin(), trace.end()))
     error("Classifier should not accept.");
 
   c.analyze(states.begin(), states.end(), trace.begin());
-  if (classifier_accept(c, trace.begin(), trace.end())) 
+  if (classifier_accept(c, trace.begin(), trace.end()))
     error("Did not expect classifier to accept so soon.");
   c.analyze(states.begin(), states.end(), trace.begin());
   c.analyze(states.begin(), states.end(), trace.begin());
   c.analyze(states.begin(), states.end(), trace.begin());
-  if (!classifier_accept(c, trace.begin(), trace.end())) 
+  if (!classifier_accept(c, trace.begin(), trace.end()))
     error("Classifier should accept.");
 
   cerr << "Accept query count: " << accept_query_count

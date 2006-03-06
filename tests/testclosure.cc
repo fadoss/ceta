@@ -6,15 +6,13 @@ using namespace std;
 using namespace ceta;
 using namespace ceta::closure;
 
-void test_closure(const epsilon_closure_t& closure) {
-  kind_t k("k");
-  state_t cNat(k, "cNat");
-  state_t dNat(k, "dNat");
-  state_t cMSet(k, "cMSet");
+void test_closure() {
+  const epsilon_closure_t<string, size_t> closure;
 }
 
 int main(int argc, char **argv) {
   try {
+    test_closure();
     return 0;
   } catch (const exception& e) {
     cerr << e.what() << endl;

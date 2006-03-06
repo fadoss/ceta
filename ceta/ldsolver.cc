@@ -1,15 +1,15 @@
-/* Copyright 2005 Joe Hendrix
- * 
+/* Copyright 2006 University of Illinois at Urbana-Champaign
+ *
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -58,7 +58,7 @@ namespace impl {
   class strict_lexicographical_ordering {
   public:
     strict_lexicographical_ordering(size_t n) : n_(n) {}
-  
+
     template<class I>
     bool operator()(I x, I y) {
       return std::lexicographical_compare(x, x + n_, y, y + n_);
@@ -106,7 +106,7 @@ namespace impl {
     ~node_stack() {
       delete [] stack_;
     }
-  
+
     size_t count(void) {
       return (next_node_ - stack_) / node_size_;
     }
@@ -114,7 +114,7 @@ namespace impl {
     bool is_empty(void) {
       return stack_ == next_node_;
     }
-  
+
     int* remainder(void) {
       return reinterpret_cast<int*>(next_node_ - node_size_);
     }
@@ -130,38 +130,38 @@ namespace impl {
     size_t& rank(void) {
       return *(reinterpret_cast<size_t*>(next_node_ + rank_offset_));
     }
-    
+
     void clear(void) {
       next_node_ = stack_;
     }
-    
+
     void push(void) {
       std::fill(next_node_, next_node_ + node_size_, 0);
       next_node_ += node_size_;
     }
-  
+
     void pop(void) {
       next_node_ -= node_size_;
     }
 
     // Given a coefffient matrix explore the list of variable indices ranging
     // from varStart ... varEnd - 1, expl
-    void explore_nodes(const col_matrix<int>& m, 
+    void explore_nodes(const col_matrix<int>& m,
                        const size_t* varStart, const size_t* varEnd) {
       // Decrement stack to reflect that current stack is being deleted.
       next_node_ -= node_size_;
-    
+
       // Get location of last var to expand if any.
       const size_t* lastVar = (varEnd == varStart) ? NULL : (varEnd - 1);
-      
+
       for (const size_t* curVar(varStart); curVar != varEnd; ++curVar) {
         // Get index of variable to increment
         size_t var(*curVar);
-    
+
         // Store index of next index in stack to use
         char* next = next_node_ + node_size_;
-    
-        // Before we change anything with the next node, we want to 
+
+        // Before we change anything with the next node, we want to
         // copy the current node state into the node after the next
         // one and freeze the current var in that state.
         if (curVar != lastVar) {
@@ -172,7 +172,7 @@ namespace impl {
               = reinterpret_cast<bool*>(next + node_size_ + frozen_offset_);
           frozenVars[var] = true;
         }
-    
+
         // Move nextNode is stack to next
         next_node_ = next;
         // Increment solution at var
@@ -181,12 +181,12 @@ namespace impl {
         axpy(1, m.col(var).begin(), m.col(var).end(), remainder());
       }
     }
-    
+
   private:
     // Disable copy constructor and assignment
     node_stack(const node_stack&);
     node_stack& operator=(const node_stack&);
-    
+
     const size_t nr_;
     const size_t nc_;
     ptrdiff_t solution_offset_;
@@ -226,7 +226,7 @@ namespace impl {
     ~solution_list() {
       clear();
     }
-  
+
     void add(const unsigned* sol) {
       unsigned* newsol = new unsigned[nc_];
       try {
@@ -264,7 +264,7 @@ namespace impl {
     // Disable copy constructor and assignment operator
     solution_list(const solution_list&);
     solution_list& operator=(const solution_list&);
-  
+
     const size_t nc_;
     vector<const unsigned*> s_;
   };
@@ -272,12 +272,12 @@ namespace impl {
   class lu_factory {
     typedef std::map<const bool*, LU<rational>*,
                      strict_lexicographical_ordering> map_type;
-  
+
   public:
     lu_factory(size_t nr, size_t nc)
       : nr_(nr), nc_(nc), map_(strict_lexicographical_ordering(nc)) {
     }
-  
+
     ~lu_factory() {
       map_type::iterator i = map_.begin();
       while (i != map_.end()) {
@@ -291,11 +291,11 @@ namespace impl {
         i = next;
       }
     }
-  
+
     size_t size(void) const {
       return map_.size();
     }
-    
+
     const LU<rational>* get(const bool* frozen_cols,
                             size_t unfrozen_count,
                             const size_t* unfrozen_indices,
@@ -310,11 +310,11 @@ namespace impl {
           // Initialize copy of frozen_cols
           frozen_copy = new bool[nc_];
           std::copy(frozen_cols, frozen_cols + nc_, frozen_copy);
-  
+
           // Create lu matrix for frozen_cols
-          lu = new LU<rational>(nr_, unfrozen_count, 
+          lu = new LU<rational>(nr_, unfrozen_count,
                 make_col_permutation_matrix_view(m, unfrozen_indices));
-  
+
            map_.insert(make_pair(frozen_copy, lu));
         } catch (...) {
           delete [] frozen_copy;
@@ -328,7 +328,7 @@ namespace impl {
     // Disable default copy constructor and assignment operator
     lu_factory(const lu_factory&);
     lu_factory& operator=(const lu_factory&);
-    
+
     size_t nr_;
     size_t nc_;
     map_type map_;
@@ -341,7 +341,7 @@ namespace impl {
    */
   template<typename I, typename T>
   static
-  size_t* indices_with_value(I start, I end, T value, size_t* indices) { 
+  size_t* indices_with_value(I start, I end, T value, size_t* indices) {
     size_t idx = 0;
     for (I i = start; i != end; ++i, ++idx) {
       if (*i == value) {
@@ -482,11 +482,11 @@ namespace ceta {
       // Solve all homogeneous solutions if we haven't already
       while (!homo_complete_)
         next(sol);
-      
+
       // Reset stack and inhomogeneous solutions to clean slate
       stack_.clear();
       inhSol_.clear();
-      
+
       // Add single element in stack with remainder offset by -v[i].
       stack_.push();
       int* r = stack_.remainder();
@@ -497,17 +497,17 @@ namespace ceta {
 
     bool next(std::vector<unsigned>& sol) {
       bool result = false;
-    
-      while (!result && (!stack_.is_empty())) { 
-    
+
+      while (!result && (!stack_.is_empty())) {
+
         // Get locations from top of stack
         int* remainder = stack_.remainder();
         unsigned* solution = stack_.solution();
         bool* frozen_vars = stack_.frozen_vars();
-    
+
         // Number of variables that are not frozen
         size_t unfrozen_count = nc_ - (stack_.count() - 1);
-        
+
         #ifdef PROFILE_NODES
         ++(nodesExplored[stack_.count() - 1]);
         #endif
@@ -517,20 +517,20 @@ namespace ceta {
         const LU<rational>* lu = NULL;
         if (unfrozen_count <= rank) {
           // Initialize unfrozen_indices
-          indices_with_value(frozen_vars, frozen_vars + nc_, false, 
+          indices_with_value(frozen_vars, frozen_vars + nc_, false,
                              unfrozen_indices);
           lu = cache_.get(frozen_vars, unfrozen_count, unfrozen_indices, m_);
           rank = lu->rank();
         }
-        
+
         // If the number of active variables equals the rank of the matrix
         // then try solving directly.
         if (unfrozen_count == rank) {
           independentNodes++;
-    
+
           rational rem_solution[unfrozen_count];
           bool found = lu->solve(remainder, rem_solution);
-    
+
           for (size_t i(0); found && (i != unfrozen_count); ++i) {
             if (rem_solution[i].numerator()  > 0) found = false;
             if (rem_solution[i].denominator() != 1) found = false;
@@ -539,7 +539,7 @@ namespace ceta {
           if (found) {
     	    for (size_t i(0); i != rank; ++i)
     	      solution[unfrozen_indices[i]] -= rem_solution[i].numerator();
-    
+
             bool is_min = hSol_.is_min(solution)
                      && inhSol_.is_min(solution);
     	    if (is_min) {
@@ -552,7 +552,7 @@ namespace ceta {
               std::copy(solution, solution + nc_, sol.begin());
             }
           }
-        } else 
+        } else
         #endif
         // If top of stack is solution
         if (is_zero(remainder, remainder + nr_)) {
@@ -582,7 +582,7 @@ namespace ceta {
                && (dot_product(m_.col(i).begin(), m_.col(i).end(),
                                remainder) < 0)) {
               // Temporarily increment solution at index i.
-              ++solution[i]; 
+              ++solution[i];
               // Check if solution would still be minimal
               bool explore = hSol_.is_min(solution)
                         && inhSol_.is_min(solution);
@@ -644,23 +644,23 @@ namespace ceta {
   ld_solver_t::ld_solver_t(size_t nr, size_t nc, const int* coef)
     : solver_(new ld_solver_impl(nr, nc, coef)) {
   }
-  
+
   ld_solver_t::~ld_solver_t() {
     delete solver_;
   }
-  
+
   void ld_solver_t::solve(const int* v) {
     solver_->solve(v);
   }
-  
+
   const bool ld_solver_t::next(vector<unsigned>& sol) {
     return solver_->next(sol);
   }
-  
+
   size_t ld_solver_t::nr(void) const {
     return solver_->nr();
   }
-  
+
   size_t ld_solver_t::nc(void) const {
     return solver_->nc();
   }

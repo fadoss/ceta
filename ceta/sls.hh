@@ -1,4 +1,4 @@
-/* Copyright 2005 Joe Hendrix
+/* Copyright 2006 University of Illinois at Urbana-Champaign
  * 
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,8 @@
 #ifndef _sls_hh_
 #define _sls_hh_
 /** \file
- * Representation of semilinear sets with operations for intersection and
- * complementation.
+ * Defines classes for representing semilinear sets and combining them with
+ * boolean operations.
  */
 
 #include <set>

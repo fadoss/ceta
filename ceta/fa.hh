@@ -1,15 +1,15 @@
-/* Copyright 2005 Joe Hendrix
- * 
+/* Copyright 2006 University of Illinois at Urbana-Champaign
+ *
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -39,8 +39,8 @@ public:
     map_[sym][lhs].insert(rhs);
   }
 
-  /** 
-   * Return the next states reachable from a state in the lhs using a 
+  /**
+   * Return the next states reachable from a state in the lhs using a
    * transition involving sym.
    */
   const std::set<State>
@@ -140,7 +140,7 @@ private:
     /** Set of states reached. */
     std::set<State> states;
   };
-  
+
   /** Construct a subset from a pointer to its implementation. */
   subset_t(const boost::shared_ptr<impl_t>& impl)
     : impl_(impl) {
@@ -196,11 +196,11 @@ public:
                        SymbolIterator symbols_begin,
                        SymbolIterator symbols_end,
                        StateIterator states_begin,
-                       StateIterator states_end) 
+                       StateIterator states_end)
     : rules_(rules),
       symbols_(symbols_begin, symbols_end),
       cur_symbol_(symbols_.begin()) {
-    // Initialize pending explorations with initial states. 
+    // Initialize pending explorations with initial states.
     next_ = add_subset(subset_t<Symbol, State>(states_begin, states_end));
     cur_symbol_ = symbols_.begin();
   }
@@ -212,7 +212,7 @@ public:
       // Explore from current subset using next symbols.
       while ((next_ == reachables_.end())
           && (cur_symbol_ != symbols_.end())) {
-        // Get new states from currrent subset after transitioning with 
+        // Get new states from currrent subset after transitioning with
         // current symbol.
         const std::set<State> new_states
             = rules_.next_states(cur_subset.states(), *cur_symbol_);
@@ -252,7 +252,7 @@ private:
 
   /** Adds a new subset to reachable states and pendings. */
   reachable_iter add_subset(const subset_t<Symbol, State>& subset) {
-    reachable_iter result = 
+    reachable_iter result =
           reachables_.insert(std::make_pair(subset.states(), subset)).first;
     pending_.push_back(result);
     return result;

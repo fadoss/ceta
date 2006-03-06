@@ -1,15 +1,15 @@
-/* Copyright 2005 Joe Hendrix
- * 
+/* Copyright 2006 University of Illinois at Urbana-Champaign
+ *
  * Ceta is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -22,7 +22,7 @@
 
 /** \file
  * Defines a templated definition of a context free grammar with three types
- * of rules -- rules that produce terminals, a single nonterminal, and a 
+ * of rules -- rules that produce terminals, a single nonterminal, and a
  * pair of nonterminals.  The data structures have been made generic so that
  * any type may be used as a terminal and nonterminal symbol.  The elements
  * however should follow the rules a map key is suppossed to follow: be
@@ -44,9 +44,9 @@ namespace cfg {
     /** Right-hand side of production rule. */
     Terminal rhs;
   };
-  /** 
+  /**
    * Helper method for constructing a terminal rule so that most client code
-   * does not need to refer to trule_t directly. 
+   * does not need to refer to trule_t directly.
    * \relates trule_t
    */
   template<typename Terminal, typename Nonterminal>
@@ -68,9 +68,9 @@ namespace cfg {
     /** Right-hand side of production rule. */
     Nonterminal rhs;
   };
-  /** 
+  /**
    * Helper method for constructing a unary rule so that most client code
-   * does not need to refer to urule_t directly. 
+   * does not need to refer to urule_t directly.
    * \relates urule_t
    */
   template<typename Nonterminal>
@@ -80,7 +80,7 @@ namespace cfg {
   }
 
 
-  /** 
+  /**
    * A regular production rule from a nonterminal to two nonterminals.
    * This is a simple read-only data structure and so its members are
    * exposed publically.
@@ -102,10 +102,10 @@ namespace cfg {
     /** Second nonterminal on reft-hand side of production rule. */
     Nonterminal rhs2;
   };
-  
-  /** 
+
+  /**
    * Helper method for constructing a regular rule so that most client code
-   * does not need to refer to rrule_t directly. 
+   * does not need to refer to rrule_t directly.
    * \relates rrule_t
    */
   template<typename Nonterminal>
@@ -174,14 +174,14 @@ namespace cfg {
       return terminals_.begin();
     }
 
-    /** 
+    /**
      * Returns iterator that points one past the last terminal that appears
      * in a rule added to this cfg.
      */
     terminal_iterator terminals_end(void) const {
       return terminals_.end();
     }
-    
+
     /**
      * Return iterator that points to first nonterminal that appears in a
      * rule added to this cfg.
@@ -190,7 +190,7 @@ namespace cfg {
       return nonterminals_.begin();
     }
 
-    /** 
+    /**
      * Returns iterator that points one past the last nonterminal that
      * appears in a rule added to this cfg.
      */

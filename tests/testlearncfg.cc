@@ -32,7 +32,7 @@ void test_simple(void) {
   rules.push_back(rule_t("qboth", "qboth", "qb"));
   rules.push_back(rule_t("qboth", "qb", "qboth"));
 
-  cfg_explorer_t<char, string> 
+  cfg_explorer_t<char, string>
     explorer(nonterminals.begin(), nonterminals.end(),
              rules.begin(), rules.end());
   explorer.add_terminal('a', &nonterminals[0], &nonterminals[0] + 1);
@@ -47,10 +47,10 @@ void test_simple(void) {
     if (explorer.has_reachable()) {
       const std::set<string>& r = explorer.reachable();
 
-      if (count == 3) 
+      if (count == 3)
         error("Too many reachable sets.");
 
-      if (r.size() != 1) 
+      if (r.size() != 1)
         error("Too many elements.");
 
       const string& state = *r.begin();
@@ -62,9 +62,42 @@ void test_simple(void) {
   }
 }
 
+/**
+ * Checks that explorer returns string 'aa' even though it has same reachable
+ * states as 'a'
+ */
+void test_learn1() {
+  std::vector<string> nonterminals;
+  nonterminals.push_back("qa");
+
+  typedef cfg_rule_t<string> rule_t;
+  std::vector<rule_t> rules;
+  rules.push_back(rule_t("qa", "qa", "qa"));
+
+  cfg_explorer_t<char, string>
+    explorer(nonterminals.begin(), nonterminals.end(),
+             rules.begin(), rules.end());
+  explorer.add_terminal('a', &nonterminals[0], &nonterminals[0] + 1);
+
+  size_t found_count = 0;
+
+  while (!explorer.complete()) {
+    cerr << "Working" << endl;
+    explorer.work();
+    while (explorer.has_reachable()) {
+      ++found_count;
+      explorer.pop_reachable();
+    }
+  }
+
+  if (found_count != 1)
+    error("Unexpected number of state sets returned.");
+}
+
 int main(int argc, char **argv) {
   try {
     test_simple();
+    test_learn1();
     return 0;
   } catch (const exception& e) {
     cerr << e.what() << endl;
