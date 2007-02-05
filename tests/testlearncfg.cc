@@ -16,30 +16,27 @@ void error(const string& msg) {
 }
 
 void test_simple(void) {
-  std::vector<string> nonterminals;
-  nonterminals.push_back("qa");
-  nonterminals.push_back("qb");
-  nonterminals.push_back("qboth");
+  chomsky_rules_t<string> rules;
+  rules.add_nonterminal("qa");
+  rules.add_nonterminal("qb");
+  rules.add_nonterminal("qboth");
+  rules.add_rule("qa", "qa", "qa");
+  rules.add_rule("qb", "qb", "qb");
+  rules.add_rule("qboth", "qa", "qb");
+  rules.add_rule("qboth", "qb", "qa");
+  rules.add_rule("qboth", "qa", "qboth");
+  rules.add_rule("qboth", "qboth", "qa");
+  rules.add_rule("qboth", "qboth", "qb");
+  rules.add_rule("qboth", "qb", "qboth");
 
-  typedef cfg_rule_t<string> rule_t;
-  std::vector<rule_t> rules;
-  rules.push_back(rule_t("qa", "qa", "qa"));
-  rules.push_back(rule_t("qb", "qb", "qb"));
-  rules.push_back(rule_t("qboth", "qa", "qb"));
-  rules.push_back(rule_t("qboth", "qb", "qa"));
-  rules.push_back(rule_t("qboth", "qa", "qboth"));
-  rules.push_back(rule_t("qboth", "qboth", "qa"));
-  rules.push_back(rule_t("qboth", "qboth", "qb"));
-  rules.push_back(rule_t("qboth", "qb", "qboth"));
-
-  cfg_explorer_t<char, string>
-    explorer(nonterminals.begin(), nonterminals.end(),
-             rules.begin(), rules.end());
-  explorer.add_terminal('a', &nonterminals[0], &nonterminals[0] + 1);
-  explorer.add_terminal('b', &nonterminals[1], &nonterminals[1] + 1);
+  cfg_explorer_t<char, string> explorer(rules);
 
   // Expected states
   string states[] = { "qa", "qboth", "qb"};
+
+  explorer.add_terminal('a', states, states + 1);
+  explorer.add_terminal('b', states + 2, states + 3);
+
   // Number of reachables so far.
   size_t count = 0;
   while (!explorer.complete()) {
@@ -67,20 +64,16 @@ void test_simple(void) {
  * states as 'a'
  */
 void test_learn1() {
-  std::vector<string> nonterminals;
-  nonterminals.push_back("qa");
+  chomsky_rules_t<string> rules;
+  rules.add_nonterminal("qa");
+  rules.add_rule("qa", "qa", "qa");
 
-  typedef cfg_rule_t<string> rule_t;
-  std::vector<rule_t> rules;
-  rules.push_back(rule_t("qa", "qa", "qa"));
+  string states[] = { "qa"};
 
-  cfg_explorer_t<char, string>
-    explorer(nonterminals.begin(), nonterminals.end(),
-             rules.begin(), rules.end());
-  explorer.add_terminal('a', &nonterminals[0], &nonterminals[0] + 1);
+  cfg_explorer_t<char, string> explorer(rules);
+  explorer.add_terminal('a', states, states + 1);
 
   size_t found_count = 0;
-
   while (!explorer.complete()) {
     cerr << "Working" << endl;
     explorer.work();

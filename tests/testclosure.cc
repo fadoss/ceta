@@ -4,10 +4,12 @@
 
 using namespace std;
 using namespace ceta;
-using namespace ceta::closure;
 
 void test_closure() {
-  const epsilon_closure_t<string, size_t> closure;
+  theory_t theory;
+  ta_t ta(theory);
+  closure_t closure(ta);
+  //TODO: Actually test closure
 }
 
 int main(int argc, char **argv) {

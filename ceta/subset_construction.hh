@@ -24,7 +24,6 @@
 #include <ceta/export.h>
 #include <ceta/ta.hh>
 
-/** Namespace for all of Ceta's declarations. */
 namespace ceta {
   /** Result of testing the emptiness of a tree automaton. */
   class CETA_DSO_EXPORT test_result_t {
@@ -78,7 +77,18 @@ namespace ceta {
   /** Performs subset construction using the rules in the tree automaton. */
   class CETA_DSO_EXPORT subset_constructor_t {
   public:
+    /**
+     * Constructs a new incremental subset constructor where every state is
+     * positive and negative.
+     */
     subset_constructor_t(const ta_t& ta);
+    /**
+     * Constructs a new incremental subset constructor with the given
+     * positive and negative states.
+     */
+    subset_constructor_t(const ta_t& ta,
+                         const std::set<state_t>& pos_states,
+                         const std::set<state_t>& neg_states);
     /** Performs some finite amount of work in subset construction. */
     void work(void);
     /** Returns true if subset construction has found all reachable sets. */
@@ -86,7 +96,7 @@ namespace ceta {
     /** Returns true if constructor has a new reachable set. */
     bool has_next(void) const;
     /** Returns next reachable set. */
-    const std::set<state_t>& next_set(void) const;
+    const std::set<state_t> next_set(void) const;
     /** Returns term for next reachable set. */
     const term_t& next_term(void) const;
     /** Pops next reachable set from queue. */
@@ -104,22 +114,6 @@ namespace ceta {
    * Checks if no term is accepted.
    * \relates ta_t
    */
-  inline
-  const test_result_t test_emptiness(const ta_t& ta) {
-    subset_constructor_t sc(ta);
-    while (sc.has_next() || !sc.is_complete()) {
-      if (!sc.has_next())
-        sc.work();
-      while (sc.has_next()) {
-        const std::set<state_t>& set = sc.next_set();
-        const term_t& term = sc.next_term();
-        if (models(predicate(ta, kind(term)), set))
-          return test_result_t(term, set);
-        sc.pop_next();
-      }
-    }
-    test_result_t accept_result;
-    return accept_result;
-  }
+  const test_result_t test_emptiness(const ta_t& ta) CETA_DSO_EXPORT;
 }
 #endif

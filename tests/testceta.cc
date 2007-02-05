@@ -86,6 +86,7 @@ void test_and(void) {
 }
 
 void test_nat_mset_sum_id() {
+  std::cerr << "test_nat_mset_sub_id" << std::endl;
   theory_t theory;
 
   kind_t k("k"); add_kind(theory, k);
@@ -172,7 +173,6 @@ void test_nat_mset_sum_id() {
   add_rule(ta, make_rule(cat,  list_of(kNAT)(kNAT), kNAT));
   // rNAT
   add_rule(ta, make_rule(cat, list_of(rNAT)(kNAT), rNAT));
-  add_rule(ta, make_rule(cat, list_of(kNAT)(rNAT), rNAT));
 
   // Sum
   // sum(cMSet) => dNat
@@ -192,6 +192,7 @@ void test_nat_mset_sum_id() {
 
   set_predicate(ta, !rNAT & (dNat & !cNat | dMSet & !cMSet));
 
+  std::cerr << ta << std::endl;
   test_result_t result = test_emptiness(ta);
 
   if (!result) {
@@ -204,6 +205,7 @@ void test_nat_mset_sum_id() {
   }
 }
 
+/** Smoke-test of intersection operator. */
 void test_intersect() {
   theory_t theory;
   kind_t k = *add_kind(theory, kind_t("k"));
@@ -216,10 +218,98 @@ void test_intersect() {
   add_rule(ta, make_constant_rule(a, p));
 
   ta_t t2 = ta;
-  ta_t t3 = ta & t2; // infinite loop
-  cerr << t3 << endl; 
+  ta_t t3 = ta & t2;
+  cerr << t3 << endl;
 }
 
+/** Tests terms are being flattened and variables are eliminated. */
+void test_term(void) {
+  theory_t th;
+
+  kind_t k = *add_kind(th, kind_t("k"));
+  op_t a = *add_op(th, make_constant("a", k));
+  op_t b = *add_op(th, make_constant("b", k));
+  op_t f = *add_op(th, make_binary_op("f", k, k, k));
+  set_axioms(th, f, assoc() | id(a));
+  op_t g = *add_op(th, make_binary_op("g", k, k, k));
+  set_axioms(th, g, assoc() | id(a));
+
+  term_t ta = make_constant(th, a);
+  term_t tb = make_constant(th, b);
+  std::vector<term_t> subterms;
+  subterms.push_back(ta);
+  subterms.push_back(ta);
+  subterms.push_back(ta);
+
+  term_t tfaa(th, g, &subterms[0], &subterms[3]);
+  subterms[0] = tfaa; subterms[1] = tb;
+  term_t tgfaab(th, f, &subterms[0], &subterms[3]);
+
+  if (root(tgfaab) != b) {
+    std::cerr << "Term: " << tgfaab << std::endl;
+    sig_error("Unexpected root");
+  }
+
+  subterms[0] = tgfaab; subterms[1] = tgfaab;
+  term_t tgbb(th, g, &subterms[0], &subterms[2]);
+  subterms[0] = tgbb;
+  term_t tgbbb(th, g, &subterms[0], &subterms[2]);
+  if ((root(tgbbb) != g) || (subterm_count(tgbbb) != 3)) {
+    std::cerr << "Term: " << tgbbb << std::endl;
+    sig_error("Unexpected term");
+  }
+}
+
+/**
+ * Tests that subset construction works correctly when there are cycles
+ * in epsilon rules.
+ */
+void test_cyclic(void) {
+  theory_t th;
+  kind_t k = *add_kind(th, kind_t("k"));
+  op_t a = *add_op(th, make_constant("a", k));
+  op_t f = *add_op(th, make_binary_op("f", k, k, k));
+  op_t fc = *add_op(th, make_binary_op("fc", k, k, k));
+  set_axioms(th, fc, comm());
+  op_t fa = *add_op(th, make_binary_op("fa", k, k, k));
+  set_axioms(th, fa, assoc());
+  op_t fac = *add_op(th, make_binary_op("fac", k, k, k));
+  set_axioms(th, fac, assoc() | comm());
+
+  ta_t ta(th);
+  state_t sa = *add_state(ta, state_t(k, "sa"));
+  state_t sb = *add_state(ta, state_t(k, "sb"));
+
+  add_erule(ta, erule_t(sa, sb));
+  add_erule(ta, erule_t(sb, sa));
+
+  add_rule(ta, make_constant_rule(a, sa));
+  add_rule(ta, make_rule(f,   list_of(sa)(sb), sa));
+  add_rule(ta, make_rule(fa,  list_of(sa)(sb), sa));
+  add_rule(ta, make_rule(fc,  list_of(sa)(sb), sa));
+  add_rule(ta, make_rule(fac, list_of(sa)(sb), sa));
+
+  subset_constructor_t sc(ta);
+
+  std::set<state_t> expected_states;
+  expected_states.insert(sa);
+  expected_states.insert(sb);
+
+  while (!sc.is_complete() || sc.has_next()) {
+    while (sc.has_next()) {
+      if (sc.next_set() != expected_states) {
+        std::cerr << "Unexpected states: "
+                  << sc.next_term()
+                  << " -> "
+                  << sc.next_set()
+                  << std::endl;
+        sig_error("Unexpected states");
+      }
+      sc.pop_next();
+    }
+    sc.work();
+  }
+}
 
 int main(int argc, char **argv) {
   try {
@@ -228,6 +318,8 @@ int main(int argc, char **argv) {
     test_and();
     test_nat_mset_sum_id();
     test_intersect();
+    test_term();
+    test_cyclic();
     return 0;
   } catch (const exception& e) {
     cerr << e.what() << endl;

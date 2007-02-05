@@ -50,9 +50,6 @@ void test_simple() {
   rules.add_rule("pa", "qa", "f");
   rules.add_rule("f", "pa", "qb");
 
-  check_set(rules.searches("f"), list_of<string>("f")("pa")("qa"));
-  check_set(rules.followups("f", "qa"), list_of<string>("qb"));
-
   terminal_rules_t<char, string> trules;
   string qa[] = {"qa"};
   string qb[] = {"qb"};
@@ -69,11 +66,37 @@ void test_simple() {
     error("Incorrect parse 'aaabbbb'");
 }
 
+void test_searching(void) {
+  chomsky_rules_t<string> rules;
+  rules.add_nonterminal("A");
+  rules.add_nonterminal("B");
+  rules.add_nonterminal("C");
+  rules.add_nonterminal("D");
+  rules.add_nonterminal("E");
+
+  rules.add_rule("A", "D", "C");
+  rules.add_rule("B", "C", "C");
+  rules.add_erule("D", "B");
+  rules.add_erule("E", "A");
+
+  terminal_rules_t<char, string> trules;
+  string cstates[] = {"C"};
+  trules.add_terminal('c', cstates, cstates + 1);
+
+  string test = "ccc";
+  if (!member(rules, trules, string("A"), test.begin(), test.end()))
+    error("Incorrect parse 'A := ccc'");
+  if (member(rules, trules, string("D"), test.begin(), test.end()))
+    error("Incorrect parse 'D := ccc'");
+  if (!member(rules, trules, string("E"), test.begin(), test.end()))
+    error("Incorrect parse 'E := ccc'");
+}
 
 int main(int argc, char **argv)
 {
   try {
     test_simple();
+    test_searching();
     return 0;
   } catch (const exception& e) {
     cerr << e.what() << endl;

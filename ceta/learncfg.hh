@@ -178,9 +178,9 @@ namespace cfg {
       const std::set<Nonterminal>& found = trules_.find(t)->second;
       generated_set_t gen = parse(rules_, trace, found.begin(), found.end());
       // See if parse accepts.
-      bool accepts = gen.count(prefix_pair_t<Nonterminal>(0, nt_));
+      bool nt_accepts = accepts(trace, gen, 0, nt_);
       // Get representative.
-      return find_node(trace, accepts);
+      return find_node(trace, nt_accepts);
     }
 
     /**
@@ -255,7 +255,7 @@ namespace cfg {
           gen = parse(rules_, cur_trace, found.begin(), found.end());
           d = d.rest();
         }
-        return gen.count(prefix_pair_t<Nonterminal>(0, nt_)) > 0;
+        return accepts(cur_trace, gen, 0, nt_);
       }
     }
 
@@ -326,13 +326,11 @@ namespace cfg {
 
     cfg_tree_map_t(const rules_t& rules)
       : rules_(rules) {
-      // Construct in
-      const std::set<Nonterminal>& nt_set = rules_.nonterminals();
-
       // Construct initial trace.
-      earley_trace_t<Nonterminal> initial(nt_set.begin(), nt_set.end());
+      earley_trace_t<Nonterminal> initial(rules_);
 
       typedef typename std::set<Nonterminal>::const_iterator iter;
+      const std::set<Nonterminal>& nt_set = rules_.nonterminals();
       for (iter i = nt_set.begin(); i != nt_set.end(); ++i) {
         cfg_tree_t<Terminal, Nonterminal> tree(rules_, trules_, *i, initial);
         map_.insert(std::make_pair(*i, tree));
@@ -435,11 +433,12 @@ namespace cfg {
     typedef std::map<Nonterminal, size_t> primary_t;
 
     /** Constructs an initial subset with the given nonterminals. */
-    template<typename NonterminalIterator>
-    cfg_subset_t(NonterminalIterator nt_begin, NonterminalIterator nt_end)
-      : trace_(nt_begin, nt_end) {
+    cfg_subset_t(const chomsky_rules_t<Nonterminal>& rules)
+      : trace_(rules) {
       // Define initial primary states.
-      for (NonterminalIterator i = nt_begin; i != nt_end; ++i)
+      const std::set<Nonterminal>& nt_set = rules.nonterminals();
+      typedef typename std::set<Nonterminal>::const_iterator iter;
+      for (iter i = nt_set.begin(); i != nt_set.end(); ++i)
         primary_.insert(std::make_pair(*i, 0));
       // As primary states are guaranteed to not be accepting, secondary
       // states is guaranteed to be empty.
@@ -567,7 +566,7 @@ namespace cfg {
         const cfg_tree_t<Terminal, Nonterminal>& tree = map[nt];
         size_t cur_node = tree.next_node(prev_node, terminal);
 
-        bool trace_accept = gen.count(prefix_pair_t<Nonterminal>(0, nt)) > 0;
+        bool trace_accept = accepts(result.trace_, gen, 0, nt);
         opt_split_t split =
                 check_next_node(tree, path_, prev_node, terminal,
                                 cur_node, result.trace_, trace_accept);
@@ -685,10 +684,9 @@ namespace cfg {
         // Get suffix of trace.
         std::vector<Terminal> suffix_path(prev_path.begin() + cur_start,
                                           prev_path.end());
+        bool suffix_accepts = accepts(trace, gen, cur_start, nt);
         earley_trace_t<Nonterminal> suffix_trace = trace.suffix(cur_start);
         // Determine if trace recognized nonterminal at start index.
-        bool suffix_accepts
-                = gen.count(prefix_pair_t<Nonterminal>(cur_start, nt)) > 0;
         // Check suffix
         typedef boost::optional<split_t> opt_split_t;
         opt_split_t result =
@@ -746,9 +744,13 @@ namespace cfg {
   template<typename Terminal, typename Nonterminal>
   class nonempty_queue_t {
   public:
-    template<typename RuleIterator>
-    nonempty_queue_t(RuleIterator rules_begin, RuleIterator rules_end) {
-      for (RuleIterator i = rules_begin; i != rules_end; ++i) {
+    nonempty_queue_t(const chomsky_rules_t<Nonterminal>& rules)
+      : rules_(rules) {
+      typedef std::vector< cfg_rule_t<Nonterminal> > rule_vector_t;
+      typedef typename rule_vector_t::const_iterator iter;
+      iter rules_begin = rules.rules().begin();
+      iter rules_end = rules.rules().end();
+      for (iter i = rules_begin; i != rules_end; ++i) {
         const cfg_rule_t<Nonterminal>& cur_rule = *i;
         // See if rule's lhs is in either argument.
         bool cyclic = (cur_rule.lhs == cur_rule.first)
@@ -784,16 +786,34 @@ namespace cfg {
         Nonterminal cur_nt = *smaller_nonterminals.begin();
         smaller_nonterminals.erase(smaller_nonterminals.begin());
 
-        const std::set<rule_t>& cur_rules = rules(cur_nt);
+        // Process new nonterminals for epsilon rules.
+        {
+          const instance_t& rhs_instance = instances_[cur_nt];
+          const std::set<Nonterminal>& lhs_set = rules_.enext(cur_nt);
+          typedef typename std::set<Nonterminal>::const_iterator iter;
+          for (iter i = lhs_set.begin(); i != lhs_set.end(); ++i) {
+            // Update instance if it is shorter
+            instance_iter cur_instance
+                    = add_instance(*i, rhs_instance.size());
+            if (cur_instance != instances_.end()) {
+              cur_instance->second = rhs_instance;
+              smaller_nonterminals.insert(*i);
+            }
+          }
+        }
 
-        // For each rule for nonterminal.
-        typedef typename std::set<rule_t>::const_iterator iter;
-        for (iter i = cur_rules.begin(); i != cur_rules.end(); ++i) {
-          instance_iter first_iter = instances_.find(i->first);
-          instance_iter second_iter = instances_.find(i->second);
-          // If both first and second iterator are bound.
-          if (( first_iter != instances_.end())
-           && (second_iter != instances_.end())) {
+        // Process new nonterminals for regular rules.
+        {
+          const std::set<rule_t>& cur_rules = rules(cur_nt);
+          typedef typename std::set<rule_t>::const_iterator iter;
+          for (iter i = cur_rules.begin(); i != cur_rules.end(); ++i) {
+            instance_iter first_iter = instances_.find(i->first);
+            instance_iter second_iter = instances_.find(i->second);
+            // If both first and second iterator are bound.
+            if (( first_iter == instances_.end())
+             || (second_iter == instances_.end()))
+              continue;
+
             // Get instance vectors for first and second.
             const instance_t& first = first_iter->second;
             const instance_t& second = second_iter->second;
@@ -870,17 +890,15 @@ namespace cfg {
     const std::set<rule_t>& rules(const Nonterminal& rhs) const {
       typedef typename implication_map_t::const_iterator iter;
       iter i = implications_.find(rhs);
-      if (i != implications_.end()) {
-        return i->second;
-      } else {
-        static std::set<rule_t> empty_set;
-        return empty_set;
-      }
+      static const std::set<rule_t> empty_set;
+      return (i != implications_.end()) ? i->second : empty_set;
     }
 
+    const chomsky_rules_t<Nonterminal> rules_;
     instances_t instances_;
     std::deque<instance_iter> queue_;
     implication_map_t implications_;
+    typedef std::map<Nonterminal, std::set<Nonterminal> > nt_set_map_t;
   };
 
   /**
@@ -986,8 +1004,8 @@ namespace cfg {
     /** Map of previous explorations. */
     explorations_t explorations_;
     /**
-     * Vector that maps each subset to pairs that lead to it.
-     * The size of the vector is equivalent to the total number of subsets.
+     * Maps each subset to pairs that lead to it.  The size of the vector is
+     * equivalent to the total number of subsets.
      */
     std::vector< std::set<pair_t> > backlinks_;
     /** Set of pending explorations. */
@@ -1008,19 +1026,13 @@ namespace cfg {
   public:
 
     /** Construct new explorer. */
-    template<typename NonterminalIterator,
-             typename RuleIterator>
-    cfg_explorer_t(NonterminalIterator nt_begin,
-                   NonterminalIterator nt_end,
-                   RuleIterator rules_begin,
-                   RuleIterator rules_end)
-      : tree_map_(rules_t(nt_begin, nt_end, rules_begin, rules_end)),
-        ne_queue_(rules_begin, rules_end),
+    cfg_explorer_t(const chomsky_rules_t<Nonterminal>& rules)
+      : tree_map_(rules),
+        ne_queue_(rules),
         queue_(1),
         next_reachable_(reachables_.end()) {
       // Add initial subset.
-      const std::set<Nonterminal>& nt_set = tree_map_.rules().nonterminals();
-      add_subset(subset_t(nt_set.begin(), nt_set.end()));
+      add_subset(subset_t(tree_map_.rules()));
     }
 
 
@@ -1039,9 +1051,7 @@ namespace cfg {
         const std::vector<Terminal>& cur_path = ne_queue_.next_instance();
 
         // Build trace for path
-        const std::set<Nonterminal>& searches
-                = tree_map_.rules().searches(cur_nt);
-        trace_t trace(searches.begin(), searches.end());
+        trace_t trace(tree_map_.rules(), cur_nt);
         typedef typename std::vector<Terminal>::const_iterator iter;
         for (iter i = cur_path.begin(); i != cur_path.end(); ++i) {
           const std::set<Nonterminal>& nt_set = tree_map_.generators(*i);
@@ -1055,7 +1065,6 @@ namespace cfg {
         recompute_after_split(cur_nt, 0);
         ne_queue_.pop_next();
       }
-//      cerr << "Stop Adding terminal" << endl;
     }
 
     /**
@@ -1082,8 +1091,6 @@ namespace cfg {
                              cur_split->existing_accept,
                              cur_split->path,
                              cur_split->trace);
-//        cerr << "Induced split" << cur_split->node << endl;
-//        cerr << cur_tree;
         recompute_after_split(cur_nt, cur_split->node);
       } else { // Exploration yielded new subset.
         const subset_t& new_subset = boost::get<subset_t>(var);
@@ -1106,7 +1113,7 @@ namespace cfg {
     }
 
     /**
-     * Returns subset of reachable states that generate a common string.
+     * Returns subset of reachable states that generate a common string
      * that no nonterminal outside of subset generates.
      */
     const std::set<Nonterminal>& reachable(void) const {
@@ -1235,7 +1242,7 @@ namespace cfg {
     nonempty_queue_t<Terminal, Nonterminal> ne_queue_;
 
     // Invariants:
-    // If an explore_t is in pendings_, it does not in any backlinks set.
+    // If an explore_t is in pendings_, it is not in any backlinks set.
 
     /** Subsets explored so far. */
     std::vector<subset_t> subsets_;

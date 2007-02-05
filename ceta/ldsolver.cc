@@ -52,9 +52,7 @@ bool is_zero(I start, I end) {
 
 namespace ceta {
 namespace impl {
-  /**
-   * Predicate for lexiographically comparing arrays of a fixed length
-   */
+  /** Predicate for lexiographically comparing arrays of a fixed length. */
   class strict_lexicographical_ordering {
   public:
     strict_lexicographical_ordering(size_t n) : n_(n) {}
@@ -66,6 +64,7 @@ namespace impl {
   private:
     size_t n_;
   };
+
 
   class node_stack {
     // The node stack for solving a LD system with p equations and q
@@ -189,6 +188,7 @@ namespace impl {
 
     const size_t nr_;
     const size_t nc_;
+    /** Offset from next_node_ where the top solution is stored. */
     ptrdiff_t solution_offset_;
     ptrdiff_t frozen_offset_;
     ptrdiff_t rank_offset_;

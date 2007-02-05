@@ -62,8 +62,8 @@ namespace ceta {
     void solve(const int* v);
 
     /**
-     * Returns the next solution or <code>NULL</code> if there are no more
-     * solutions.
+     * Returns true if there is another solution and populate the vector with
+     * the solution values.
      */
     const bool next(std::vector<unsigned>& sol);
   private:

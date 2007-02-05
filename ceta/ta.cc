@@ -413,25 +413,28 @@ namespace ceta {
 
       /** Writes kind declararation. */
       void operator()(const kind_t& kind) {
-        *o_ << "kind " << name(kind) << ";" << endl;
+        *o_ << "kind " << name(kind) << " ." << endl;
       }
 
       /** Writes operator declaration. */
       void operator()(const op_t& op) {
         *o_ << "op " << name(op) << " : "
             << make_range_writer(inputs_begin(op), inputs_end(op))
-            << " -> " << output(op)
-            << " [" << axioms(*theory_, op) << "];" << endl;
+            << " -> " << output(op);
+        axiom_set_t ax = axioms(*theory_, op);
+        if (ax != none())
+          *o_ << " [" << axioms(*theory_, op) << "]";
+        *o_ << " . " << endl;
       }
       void operator()(const state_t& state) {
         *o_ << "state " << name(state)
-            << " -> " << kind(state) << ";" << endl;
+            << " -> " << kind(state) << " ." << endl;
       }
       void operator()(const state_predicate_t& pred) {
-        *o_ << "accept " << kind(pred) << " : " << pred << ";" << endl;
+        *o_ << "accept " << kind(pred) << " : " << pred << " ." << endl;
       }
       void operator()(const erule_t& erule) {
-        *o_ << "rl " << lhs(erule) << " -> " << rhs(erule) << ";" << endl;
+        *o_ << "rl " << lhs(erule) << " -> " << rhs(erule) << " ." << endl;
       }
       void operator()(const rule_t& rule) {
         *o_ << "rl " << op(rule);
@@ -442,7 +445,7 @@ namespace ceta {
                                    ", ")
               << ")";
         }
-        *o_ << " -> " << rhs(rule) << ";" << endl;
+        *o_ << " -> " << rhs(rule) << " ." << endl;
       }
     private:
       ostream* o_;
@@ -669,7 +672,8 @@ namespace ceta {
     }
     if ((is_assoc_ || rhs.is_assoc_ || is_comm_ || rhs.is_comm_) &&
         ((rhs.id_type_ == id_left) || (rhs.id_type_ == id_right))) {
-      sig_error("If axiom set contains asssociativity or commutativity, it cannot contain a left or right identity.");
+      sig_error("One-sided identity only allowed if axiom set is neither \
+                 associative nor commutative.");
     }
     is_assoc_ |= rhs.is_assoc_;
     is_comm_ |= rhs.is_comm_;

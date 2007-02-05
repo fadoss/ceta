@@ -87,6 +87,7 @@
 //#include <algorithm>
 #include <ostream>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -317,139 +318,11 @@ namespace ceta {
   std::ostream& operator<<(std::ostream& o, const op_t& op) {
     return o << name(op);
   }
-
-  class term_t;
-
   /** \internal
-   * Checks that term is a constant.
-   * \relates term_t
+   * Checks that op is a constant.
+   * \relates op_t
    */
-  void check_constant(const op_t& term) CETA_DSO_EXPORT;
-  /** \internal
-   * Checks that kinds are equal.
-   * \relates term_t
-   */
-  void check_equal(const kind_t& kind, const kind_t& kind) CETA_DSO_EXPORT;
-  /** \internal
-   * Checks that a term with given operator and subterms would be well
-   * formed.
-   * \relates term_t
-   */
-  void check_well_formed(const op_t& op,
-          const std::vector<term_t>& subterms) CETA_DSO_EXPORT;
-  /**
-   * Term built from operators in a many-kinded signature.  Instances of
-   * this class may be in partially flattened form.  That is binary symbols
-   * may contain more than two subterms.  */
-  class CETA_DSO_EXPORT term_t {
-  public:
-    /**
-     * Type of constant random-access iterator that is used to iterate
-     * through the kinds in a theory.
-     */
-    typedef std::vector<term_t>::const_iterator subterm_iterator;
-    /**
-     * Constructs a new term.  If the subterms are not valid subterms for
-     * this operator, then an exception may be thrown, however this is only
-     * to aid client debugging, and should not be depended upon in production
-     * code.
-     *
-     * \param op Top operator of term.
-     * \param subterms_begin An input iterator that points to first subterm.
-     * \param subterms_end  An input iterator that points one past the last
-     *        subterm.
-     */
-    template<typename I>
-    term_t(const op_t& op, I subterms_begin, I subterms_end)
-      : impl_(new impl_t(op, std::vector<term_t>(subterms_begin,
-                                                 subterms_end))) {
-      /**
-       * FIXME: Line below commented out because of issue with gcc-3.3.
-       * Need to figure out why
-       */
-      //check_well_formed(op, impl_->get<1>(*impl_));
-    }
-  private:
-    friend const op_t& root(const term_t& term);
-    friend term_t::subterm_iterator subterms_begin(const term_t& term);
-    friend term_t::subterm_iterator subterms_end(const term_t& term);
-    /** Implementation type. */
-    typedef boost::tuple<op_t, std::vector<term_t> > impl_t;
-    /** Pointer to implementation. */
-    boost::shared_ptr<impl_t> impl_;
-  };
-  /**
-   * Returns root symbol of term.
-   * \relates term_t
-   */
-  inline
-  const op_t& root(const term_t& term) {
-    return term.impl_->get<0>();
-  }
-  /**
-   * Returns iterator that points to first subterm of the term.
-   * \relates term_t
-   */
-  inline
-  term_t::subterm_iterator subterms_begin(const term_t& term) {
-    return term.impl_->get<1>().begin();
-  }
-  /**
-   * Returns iterator that points one past the last subterm of the term.
-   * \relates term_t
-   */
-  inline
-  term_t::subterm_iterator subterms_end(const term_t& term) {
-    return term.impl_->get<1>().end();
-  }
-  /**
-   * Constructs a constant term with the given operator with must be a
-   * constant symbol.
-   * \relates term_t
-   */
-  inline
-  term_t make_constant(const op_t& op) {
-    const term_t* end = NULL;
-    return term_t(op, end, end);
-  }
-  /**
-   * Returns number of subterms of term.
-   * \relates term_t
-   */
-  inline
-  size_t subterm_count(const term_t& term) {
-    return subterms_end(term) - subterms_begin(term);
-  }
-  /**
-   * Returns the ith subterm of the term.
-   * \relates term_t
-   */
-  inline
-  const term_t& subterm(const term_t& term, size_t i) {
-    return subterms_begin(term)[i];
-  }
-  /**
-   * Returns kind of term.
-   * \relates term_t
-   */
-  inline
-  const kind_t& kind(const term_t& term) {
-    return output(root(term));
-  }
-  /**
-   * Returns true if term is a contant.
-   * \relates term_t
-   */
-  inline
-  bool is_constant(const term_t& term) {
-    return subterms_begin(term) == subterms_end(term);
-  }
-  /**
-   * Writes term to output stream.
-   * \relates term_t
-   */
-  std::ostream&
-        operator<<(std::ostream& o, const term_t& term) CETA_DSO_EXPORT;
+  void check_constant(const op_t& op) CETA_DSO_EXPORT;
 
   /** Type of identity for binary operator. */
   enum id_type_t {
@@ -469,7 +342,7 @@ namespace ceta {
    * axioms for an associative and commutative symbol with an identity
    * <code>c</code>,
    */
-  class axiom_set_t {
+  class CETA_DSO_EXPORT axiom_set_t {
   public:
     /** Adds attributes from rhs to these attributes. */
     axiom_set_t& operator|=(const axiom_set_t& rhs);
@@ -618,6 +491,27 @@ namespace ceta {
   std::ostream&
   operator<<(std::ostream& o, const axiom_set_t& axioms) CETA_DSO_EXPORT;
 
+  /**
+   * Returns true if operator is identity symbol in axioms for the given
+   * position.
+   */
+  inline
+  bool is_identity(const op_t& op, const axiom_set_t& axioms,
+                   size_t pos = 0) {
+    switch (id_type(axioms)) {
+    case id_none:
+      return false;
+    case id_left:
+      return (pos == 1) && (*id_symbol(axioms) == op);
+    case id_right:
+      return (pos == 2) && (*id_symbol(axioms) == op);
+    case id_both:
+      return (*id_symbol(axioms) == op);
+    default:
+      throw std::logic_error("Unexpected identity type.");
+    }
+  }
+
   class theory_impl;
 
   /**
@@ -644,7 +538,7 @@ namespace ceta {
    * iterators are not guaranteed to remain valid after the theory is
    * modified.
    */
-  class theory_t {
+  class CETA_DSO_EXPORT theory_t {
     friend class axiom_set_proxy_t;
   public:
     /**
@@ -734,25 +628,34 @@ namespace ceta {
    */
   theory_t::op_iterator id_contexts_end(
           const theory_t& theory, const op_t& id_symbol) CETA_DSO_EXPORT;
+  /**
+   * Returns true if the symbol is an identity for some operator.
+   * \relates theory_t
+   */
+  inline
+  bool is_identity(const theory_t& theory, const op_t& op) {
+    return is_constant(op)
+        && (id_contexts_begin(theory, op) != id_contexts_end(theory, op));
+  }
 
   /**
    * Adds kind to theory.
    * \relates theory_t
    */
-  const theory_t::kind_iterator add_kind(theory_t& theory,
-                                         const kind_t& kind);
+  const theory_t::kind_iterator
+  add_kind(theory_t& theory, const kind_t& kind) CETA_DSO_EXPORT;
   /**
    * Adds operator to theory.
    * \relates theory_t
    */
-  const theory_t::op_iterator add_op(theory_t& theory, const op_t& op);
+  const theory_t::op_iterator
+  add_op(theory_t& theory, const op_t& op) CETA_DSO_EXPORT;
   /**
    * Sets axioms for a binary operator.
    * \relates theory_t
    */
   void set_axioms(theory_t& theory, const op_t& bin_op,
                   const axiom_set_t& axioms) CETA_DSO_EXPORT;
-
   /**
    * Returns true if two theories are equal.
    * \relates theory_t
@@ -772,6 +675,184 @@ namespace ceta {
    */
   std::ostream&
   operator<<(std::ostream& o, const theory_t& theory) CETA_DSO_EXPORT;
+
+  class term_t;
+
+  /** \internal
+   * Checks that kinds are equal.
+   * \relates term_t
+   */
+  void check_equal(const kind_t& kind, const kind_t& kind) CETA_DSO_EXPORT;
+
+  class term_t;
+
+  const kind_t& kind(const term_t& term);
+  /**
+   * Term built from operators in a many-kinded signature.  Instances of
+   * this class may be in partially flattened form.  That is binary symbols
+   * may contain more than two subterms.  */
+  class CETA_DSO_EXPORT term_t {
+  public:
+    /**
+     * Type of constant random-access iterator that is used to iterate
+     * through the kinds in a theory.
+     */
+    typedef std::vector<term_t>::const_iterator subterm_iterator;
+    /**
+     * Constructs a new term.  If the subterms are not valid subterms for
+     * this operator, then an exception may be thrown, however this is only
+     * to aid client debugging, and should not be depended upon in production
+     * code.  The constructor takes care to flatten associative operators
+     * and eliminate identities.
+     *
+     * \param theory Theory of term.
+     * \param op Top operator of term.
+     * \param sub_begin An input iterator that points to first subterm.
+     * \param sub_end  An input iterator that points one past the last
+     *        subterm.
+     */
+    template<typename I>
+    term_t(const theory_t& theory, const op_t& op, I sub_begin, I sub_end)
+      : impl_(new impl_t(op, std::vector<term_t>())) {
+      axiom_set_t cur_axioms = axioms(theory, op);
+      const boost::optional<op_t>& id_sym = id_symbol(cur_axioms);
+
+      std::vector<term_t>& subterms = impl_->second;
+      if (is_assoc(cur_axioms)) {
+        for (I i = sub_begin; i != sub_end; ++i) {
+          // Flatten subterm is it's root is this op.
+          if (root(*i) == op) {
+            subterms.insert(subterms.end(),
+                            subterms_begin(*i), subterms_end(*i));
+          } else if (id_sym && (*id_sym == root(*i))) {
+            // Do nothing if *i is the identity.
+          } else {
+            check_equal(kind(*i), output(op));
+            subterms.push_back(*i);
+          }
+        }
+        // If there is an identity, check that we have enough subterms.
+        if (id_sym) {
+          if (subterms.empty()) {
+            impl_->first = *id_sym;
+          } else if (subterms.size() == 1) {
+            // Make new term a copy of old one.
+            impl_ = subterms[0].impl_;
+          } 
+        }
+      } else if (id_sym) {
+        for (I i = sub_begin; i != sub_end; ++i) {
+          if (*id_sym != root(*i)) {
+            check_equal(kind(*i), output(op));
+            subterms.push_back(*i);
+          }
+        }
+        if (subterms.empty()) {
+          impl_->first = *id_sym;
+        } else if (subterms.size() == 1) {
+          // Make new term a copy of old one.
+          impl_ = subterms[0].impl_;
+        } else if (subterms.size() > 2) {
+          throw std::logic_error("Too many input arguments");
+        }
+      } else {
+        typedef op_t::input_iterator kind_iter;
+        I it = sub_begin;
+        kind_iter ik = inputs_begin(op);
+        kind_iter k_end = inputs_end(op);
+        while ((it != sub_end) && (ik != k_end)) {
+          check_equal(kind(*it), *ik);
+          subterms.push_back(*it);
+          ++it; ++ik;
+        }
+        if (it != sub_end)
+          throw std::logic_error("Too many input arguments");
+        if (ik != k_end)
+          throw std::logic_error("Too few input arguments");
+      }
+    }
+  private:
+    friend const op_t& root(const term_t& term);
+    friend term_t::subterm_iterator subterms_begin(const term_t& term);
+    friend term_t::subterm_iterator subterms_end(const term_t& term);
+    /** Implementation type. */
+    typedef std::pair<op_t, std::vector<term_t> > impl_t;
+    /** Pointer to implementation. */
+    boost::shared_ptr<impl_t> impl_;
+  };
+  /**
+   * Returns root symbol of term.
+   * \relates term_t
+   */
+  inline
+  const op_t& root(const term_t& term) {
+    return term.impl_->first;
+  }
+  /**
+   * Returns iterator that points to first subterm of the term.
+   * \relates term_t
+   */
+  inline
+  term_t::subterm_iterator subterms_begin(const term_t& term) {
+    return term.impl_->second.begin();
+  }
+  /**
+   * Returns iterator that points one past the last subterm of the term.
+   * \relates term_t
+   */
+  inline
+  term_t::subterm_iterator subterms_end(const term_t& term) {
+    return term.impl_->second.end();
+  }
+  /**
+   * Constructs a constant term with the given operator with must be a
+   * constant symbol.
+   * \relates term_t
+   */
+  inline
+  term_t make_constant(const theory_t& theory, const op_t& op) {
+    const term_t* end = NULL;
+    return term_t(theory, op, end, end);
+  }
+  /**
+   * Returns number of subterms of term.
+   * \relates term_t
+   */
+  inline
+  size_t subterm_count(const term_t& term) {
+    return subterms_end(term) - subterms_begin(term);
+  }
+  /**
+   * Returns the ith subterm of the term.
+   * \relates term_t
+   */
+  inline
+  const term_t& subterm(const term_t& term, size_t i) {
+    return subterms_begin(term)[i];
+  }
+  /**
+   * Returns kind of term.
+   * \relates term_t
+   */
+  inline
+  const kind_t& kind(const term_t& term) {
+    return output(root(term));
+  }
+  /**
+   * Returns true if term is a contant.
+   * \relates term_t
+   */
+  inline
+  bool is_constant(const term_t& term) {
+    return subterms_begin(term) == subterms_end(term);
+  }
+  /**
+   * Writes term to output stream.
+   * \relates term_t
+   */
+  std::ostream&
+        operator<<(std::ostream& o, const term_t& term) CETA_DSO_EXPORT;
+
 
   /** State in a tree automaton. */
   class CETA_DSO_EXPORT state_t {
@@ -882,7 +963,7 @@ namespace ceta {
     state_predicate_t(const or_predicate_t& p);
     typedef boost::variant<bool, state_t, not_predicate_t, and_predicate_t,
             or_predicate_t> variant_t;
-    typedef boost::tuple<kind_t, variant_t> impl_t;
+    typedef std::pair<kind_t, variant_t> impl_t;
 
     friend
     const state_predicate_t operator!(const state_predicate_t& arg);
@@ -894,8 +975,13 @@ namespace ceta {
                                       const state_predicate_t& rhs);
 
     friend const kind_t& kind(const state_predicate_t& pred);
-    template<typename Visitor>
 
+    template<typename Visitor>
+    friend
+    typename Visitor::result_type
+      apply_visitor(Visitor& visitor, const state_predicate_t& pred);
+
+    template<typename Visitor>
     friend
     typename Visitor::result_type
       apply_visitor(const Visitor& visitor, const state_predicate_t& pred);
@@ -973,7 +1059,19 @@ namespace ceta {
    */
   inline
   const kind_t& kind(const state_predicate_t& pred) {
-    return pred.impl_->get<0>();
+    return pred.impl_->first;
+  }
+  /**
+   * Passes components of predicate to visitor.  A predicate visitor is an
+   * adaptable function with a nested typedef <code>result_type</code> that
+   * define the type it returns and accepts arguments that may be a
+   * <code>bool</code>, <code>state_t</code>, <code>not_predicate_t</code>,
+   * <code>and_predicate_t</code>, or <code>or_predicate_t</code>.
+   */
+  template<typename Visitor>
+  typename Visitor::result_type
+    apply_visitor(Visitor& visitor, const state_predicate_t& pred) {
+    return boost::apply_visitor(visitor, pred.impl_->second);
   }
   /**
    * Passes components of predicate to visitor.  A predicate visitor is an
@@ -985,7 +1083,7 @@ namespace ceta {
   template<typename Visitor>
   typename Visitor::result_type
     apply_visitor(const Visitor& visitor, const state_predicate_t& pred) {
-    return boost::apply_visitor(visitor, pred.impl_->get<1>());
+    return boost::apply_visitor(visitor, pred.impl_->second);
   }
   /**
    * Returns complement of predicate.
@@ -1121,10 +1219,12 @@ namespace ceta {
         || (lhs(x) == lhs(y)) && (rhs(x) < rhs(y));
   }
 
+  /**\internal
+   * Checks that a rule is well formed.
+   */
   void check_well_formed(const op_t& op,
                          const std::vector<state_t>& lhs_states,
                          const state_t& rhs) CETA_DSO_EXPORT;
-
   /**
    * Rule of the form "f(p1, ..., pn) -> q".
    * The kind of q should equal the output kind of f.  If f is a binary
@@ -1156,7 +1256,7 @@ namespace ceta {
       : op_(op),
         lhs_states_(lhs_states_begin, lhs_states_end),
         rhs_(rhs) {
-      //check_well_formed(op, lhs_states_, rhs);
+      check_well_formed(op, lhs_states_, rhs);
     }
   private:
     friend const op_t& op(const rule_t& rule);
@@ -1282,6 +1382,48 @@ namespace ceta {
     return rule_t(lhs_op, lhs_states, lhs_states + 2, rhs);
   }
 
+  /** \internal
+   * Returns the set of states that appear as a lhs state of a rule in the
+   * range [first last).
+   */
+  template<typename RuleInputIterator>
+  static inline
+  std::set<state_t>
+  lhs_states(RuleInputIterator first, RuleInputIterator last) {
+    std::set<state_t> result;
+    for (RuleInputIterator i = first; i != last; ++i)
+      result.insert(lhs_states_begin(*i), lhs_states_end(*i));
+    return result;
+  }
+
+  /** \internal
+   * Returns the set of states that appear on rhs of a rule in the range
+   * [first last).
+   */
+  template<typename RuleInputIterator>
+  static inline
+  std::set<state_t> rhs_states(RuleInputIterator first,
+                               RuleInputIterator last) {
+    std::set<state_t> result;
+    for (RuleInputIterator i = first; i != last; ++i)
+      result.insert(rhs(*i));
+    return result;
+  }
+
+  /** \internal
+   * Returns the set of states that appear in the lhs state at index arg
+   * of a rule in the range [first last).
+   */
+  template<typename RuleInputIterator>
+  static inline
+  std::set<state_t> lhs_states(RuleInputIterator first,
+                               RuleInputIterator last, size_t arg) {
+    std::set<state_t> result;
+    for (RuleInputIterator i = first; i != last; ++i)
+      result.insert(lhs_state(*i, arg));
+    return result;
+  }
+
   class ta_impl;
 
   /**
@@ -1405,12 +1547,14 @@ namespace ceta {
    */
   void add_erule(ta_t& ta, const erule_t& erule) CETA_DSO_EXPORT;
   /**
-   * Returns iterator that points to first rule in the automaton.
+   * Returns iterator that points to first rule in the automaton for the
+   * given operator.
    * \relates ta_t
    */
   const ta_t::rule_iterator rules_begin(const ta_t& ta) CETA_DSO_EXPORT;
   /**
-   * Returns iterator that points one past the last rule in the automaton.
+   * Returns iterator that points one past the last rule in the automaton
+   * for the given operator.
    * \relates ta_t
    */
   const ta_t::rule_iterator rules_end(const ta_t& ta) CETA_DSO_EXPORT;

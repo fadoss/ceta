@@ -4,6 +4,10 @@
  */
 #include <config.h>
 
+/**
+ * \def NO_RETURN
+ * Function attribute that indicates function does not return.
+ */
 #define NO_RETURN __attribute__((noreturn))
 
 /** 
@@ -18,7 +22,7 @@
   #define CETA_DSO_EXPORT  __attribute__((visibility ("default")))
   #define CETA_DSO_LOCAL   __attribute__((visibility ("internal")))
 #else
-  /** Exports the class2 */
+  /** Exports the class. */
   #define CETA_DSO_EXPORT
   #define CETA_DSO_LOCAL
 #endif
