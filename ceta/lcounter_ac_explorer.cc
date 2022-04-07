@@ -62,7 +62,7 @@ namespace lcounter {
     }
 
     bool is_terminal(void) const {
-      return boost::get<term_t>(&data_) != NULL;
+      return std::holds_alternative<term_t>(data_);
     }
 
     bool is_nonterminal(void) const {
@@ -71,7 +71,7 @@ namespace lcounter {
 
     const term_t& term(void) const {
       try {
-        return boost::get<term_t>(data_);
+        return std::get<term_t>(data_);
       } catch (...) {
         sig_error("bad_get");
       }
@@ -80,7 +80,7 @@ namespace lcounter {
     /** Returns state associated to symbol if this is a nonterminal. */
     const state_t& state(void) const {
       try {
-        return boost::get<state_t>(data_);
+        return std::get<state_t>(data_);
       } catch (...) {
         sig_error("bad_get");
       }
@@ -193,7 +193,7 @@ namespace lcounter {
      * associated to the nonterminal.  Otherwise, this is a terminal and
      * data contains the term_ which created this symbol.
      */
-    boost::variant<state_t, term_t> data_;
+    std::variant<state_t, term_t> data_;
     /**
      * Maximum number of times least-significant bit of symbol can be flipped
      * by a rule.
@@ -725,7 +725,7 @@ namespace lcounter {
       //TODO
 //      // If reaching the counter used an initial rule.
 //      if (c->used_initial_rule()) {
-//        const boost::optional<state_t>& state = c->accepting_state();
+//        const std::optional<state_t>& state = c->accepting_state();
 //        // This may add a new accepting state.
 //        if (state) accepting_states_.insert(*state);
 //      } else {

@@ -5,11 +5,8 @@
 #include <set>
 #include <stdexcept>
 
-#include <boost/assign/list_of.hpp>
-
 using namespace std;
 using namespace ceta;
-using namespace boost::assign;
 
 rule_t make_rule(const op_t& op, const list<state_t>& lhs_states,
                  const state_t& rhs) {
@@ -77,8 +74,8 @@ void test_and(void) {
   add_rule(ta, make_constant_rule(true_op, term1));
   add_rule(ta, make_constant_rule(false_op, cbool));
   add_rule(ta, make_constant_rule(false_op, term2));
-  add_rule(ta, make_rule(and_op, list_of(term1)(cbool), rbool));
-  add_rule(ta, make_rule(and_op, list_of(term2)(cbool), rbool));
+  add_rule(ta, make_rule(and_op, {term1, cbool}, rbool));
+  add_rule(ta, make_rule(and_op, {term2, cbool}, rbool));
 
   set_predicate(ta, !cbool & !rbool);
 
@@ -130,65 +127,65 @@ void test_nat_mset_sum_id() {
 
   // Succ
   // s(cNAT) => cNAT
-  add_rule(ta, make_rule(succ, list_of(cNat), cNat));
+  add_rule(ta, make_rule(succ, {cNat}, cNat));
   //   s(cNat) => q2
-  add_rule(ta, make_rule(succ, list_of(cNat), q2));
+  add_rule(ta, make_rule(succ, {cNat}, q2));
   // kNAT
-  add_rule(ta, make_rule(succ, list_of(kNAT), kNAT));
+  add_rule(ta, make_rule(succ, {kNAT}, kNAT));
   // rNAT
-  add_rule(ta, make_rule(succ, list_of(rNAT), rNAT));
+  add_rule(ta, make_rule(succ, {rNAT}, rNAT));
 
   // Plus
   // cNat + cNat => dNat
-  add_rule(ta, make_rule(plus, list_of(cNat)(cNat), dNat));
+  add_rule(ta, make_rule(plus, {cNat, cNat}, dNat));
   // +(s(cNat), cNat) => rNAT
-  add_rule(ta, make_rule(plus, list_of(q2)(cNat), rNAT));
+  add_rule(ta, make_rule(plus, {q2, cNat}, rNAT));
   // Rule for kNAT
-  add_rule(ta, make_rule(plus, list_of(kNAT)(kNAT), kNAT));
+  add_rule(ta, make_rule(plus, {kNAT, kNAT}, kNAT));
   // Rules for closing rNAT
-  add_rule(ta, make_rule(plus, list_of(rNAT)(kNAT), rNAT));
-  add_rule(ta, make_rule(plus, list_of(kNAT)(rNAT), rNAT));
+  add_rule(ta, make_rule(plus, {rNAT, kNAT}, rNAT));
+  add_rule(ta, make_rule(plus, {kNAT, rNAT}, rNAT));
 
   // Times
   // cNat * cNat => dNat
-  add_rule(ta, make_rule(times, list_of(cNat)(cNat), dNat));
+  add_rule(ta, make_rule(times, {cNat, cNat}, dNat));
   // 0 * cNat => rNAT
-  add_rule(ta, make_rule(times, list_of(q0)(cNat), rNAT));
+  add_rule(ta, make_rule(times, {q0, cNat}, rNAT));
   // s(cNat) * cNat => rNAT
-  add_rule(ta, make_rule(times, list_of(q2)(cNat), rNAT));
+  add_rule(ta, make_rule(times, {q2, cNat}, rNAT));
   // Rules for kNAT
-  add_rule(ta, make_rule(times, list_of(kNAT)(kNAT), kNAT));
+  add_rule(ta, make_rule(times, {kNAT, kNAT}, kNAT));
   // Rules for closing rNAT
-  add_rule(ta, make_rule(times, list_of(rNAT)(kNAT), rNAT));
-  add_rule(ta, make_rule(times, list_of(kNAT)(rNAT), rNAT));
+  add_rule(ta, make_rule(times, {rNAT, kNAT}, rNAT));
+  add_rule(ta, make_rule(times, {kNAT, rNAT}, rNAT));
 
   // Cat
   // cMSet cMSet => cMSet
-  add_rule(ta, make_rule(cat, list_of(cMSet)(cMSet), cMSet));
+  add_rule(ta, make_rule(cat, {cMSet, cMSet}, cMSet));
   // 0 cMSet => q1
-  add_rule(ta, make_rule(cat, list_of(q0)(cMSet), q1));
+  add_rule(ta, make_rule(cat, {q0, cMSet}, q1));
   // s(cNat) cMSet => q3
-  add_rule(ta, make_rule(cat, list_of(q2)(cMSet), q3));
+  add_rule(ta, make_rule(cat, {q2, cMSet}, q3));
   // kNAT
-  add_rule(ta, make_rule(cat,  list_of(kNAT)(kNAT), kNAT));
+  add_rule(ta, make_rule(cat,  {kNAT, kNAT}, kNAT));
   // rNAT
-  add_rule(ta, make_rule(cat, list_of(rNAT)(kNAT), rNAT));
+  add_rule(ta, make_rule(cat, {rNAT, kNAT}, rNAT));
 
   // Sum
   // sum(cMSet) => dNat
-  add_rule(ta, make_rule(sum, list_of(cMSet), dNat));
+  add_rule(ta, make_rule(sum, {cMSet}, dNat));
   // sum(0) => rNAT
-  add_rule(ta, make_rule(sum, list_of(q0), rNAT));
+  add_rule(ta, make_rule(sum, {q0}, rNAT));
   // sum(s(Nat)) => rNAT
-  add_rule(ta, make_rule(sum, list_of(q2), rNAT));
+  add_rule(ta, make_rule(sum, {q2}, rNAT));
   // sum(0 NatMSet) =>rNAT
-  add_rule(ta, make_rule(sum, list_of(q1), rNAT));
+  add_rule(ta, make_rule(sum, {q1}, rNAT));
   // sum(s(Nat) NatMSet) => rNAT
-  add_rule(ta, make_rule(sum, list_of(q3), rNAT));
+  add_rule(ta, make_rule(sum, {q3}, rNAT));
   // kNAT
-  add_rule(ta, make_rule(sum,  list_of(kNAT), kNAT));
+  add_rule(ta, make_rule(sum, {kNAT}, kNAT));
   // rNAT
-  add_rule(ta, make_rule(sum, list_of(rNAT), rNAT));
+  add_rule(ta, make_rule(sum, {rNAT}, rNAT));
 
   set_predicate(ta, !rNAT & (dNat & !cNat | dMSet & !cMSet));
 
@@ -284,10 +281,10 @@ void test_cyclic(void) {
   add_erule(ta, erule_t(sb, sa));
 
   add_rule(ta, make_constant_rule(a, sa));
-  add_rule(ta, make_rule(f,   list_of(sa)(sb), sa));
-  add_rule(ta, make_rule(fa,  list_of(sa)(sb), sa));
-  add_rule(ta, make_rule(fc,  list_of(sa)(sb), sa));
-  add_rule(ta, make_rule(fac, list_of(sa)(sb), sa));
+  add_rule(ta, make_rule(f,   {sa, sb}, sa));
+  add_rule(ta, make_rule(fa,  {sa, sb}, sa));
+  add_rule(ta, make_rule(fc,  {sa, sb}, sa));
+  add_rule(ta, make_rule(fac, {sa, sb}, sa));
 
   subset_constructor_t sc(ta);
 

@@ -21,7 +21,6 @@
 #include <map>
 #include <set>
 #include <iostream>
-#include <boost/none.hpp>
 #include "trans_closure.hh"
 
 namespace ceta {
@@ -169,7 +168,7 @@ namespace ceta {
                       const std::set<state_t>& pos_states,
                       const std::set<state_t>& neg_states,
                       const std::set<state_t>& states,
-                      const boost::optional<op_t>& op) {
+                      const std::optional<op_t>& op) {
        // Split states into both, positive, and negative.
        typedef std::set<state_t>::const_iterator iter;
        for (iter i = states.begin(); i != states.end(); ++i) {
@@ -192,7 +191,7 @@ namespace ceta {
       }
 
       void set_op_none(void) {
-        op_ = boost::none;
+        op_ = std::nullopt;
       }
 
       /**
@@ -201,7 +200,7 @@ namespace ceta {
        * "subsumes" if this record subsumes r, "subsumed_by" if this record
        * is subsumed by r, and set_null if the two records have identical
        * postive and negative states, and the effect of mergeing the records
-       * means that op should be set to boost::none.
+       * means that op should be set to std::nullopt.
        */
       compare_action_t compare(const theory_t& theory,
                                const reachable_rec_t& r) const {
@@ -250,7 +249,7 @@ namespace ceta {
       std::vector<state_t> both_rstates_;
       std::vector<state_t> pos_rstates_;
       std::vector<state_t> neg_rstates_;
-      boost::optional<op_t> op_;
+      std::optional<op_t> op_;
     };
 
     typedef std::vector<reachable_rec_t> reachable_vector_t;

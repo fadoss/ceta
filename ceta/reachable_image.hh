@@ -17,6 +17,7 @@
 #ifndef _reachable_image_hh_
 #define _reachable_image_hh_
 
+#include <algorithm>
 #include "ta.hh"
 
 namespace ceta {

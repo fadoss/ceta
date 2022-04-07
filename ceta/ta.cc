@@ -24,6 +24,7 @@
 #include <list>
 #include <map>
 #include <stdexcept>
+#include <algorithm>
 
 using namespace std;
 
@@ -42,9 +43,9 @@ namespace ceta {
     /** Clones pointer if necessary to insure this is not shared. */
     template<typename T>
     static
-    void make_unique(boost::shared_ptr<T>& ptr) {
+    void make_unique(std::shared_ptr<T>& ptr) {
       if (!ptr.unique())
-        ptr = boost::shared_ptr<T>(new T(*ptr));
+        ptr = std::shared_ptr<T>(new T(*ptr));
     }
 
     /**
@@ -745,11 +746,11 @@ namespace ceta {
 
     id_symbols_t& id_symbols = theory.impl_->id_symbols;
     // Add new id to id_symbols (can throw bad_alloc)
-    boost::optional<op_t> new_id = id_symbol(new_axioms);
+    std::optional<op_t> new_id = id_symbol(new_axioms);
     if (new_id) id_symbols[*new_id].insert(bin_op);
 
     // Remove previous identity (cannot throw).
-    boost::optional<op_t> old_id = id_symbol(cur_axioms);
+    std::optional<op_t> old_id = id_symbol(cur_axioms);
     if (old_id) id_symbols[*old_id].erase(bin_op);
 
     // Assign new axioms (cannot throw)
@@ -793,8 +794,8 @@ namespace ceta {
 
   ostream& operator<<(ostream& o, const theory_t& theory) {
     decl_writer writer(&o, &theory);
-    for_each(kinds_begin(theory), kinds_end(theory), writer);
-    for_each(  ops_begin(theory),   ops_end(theory), writer);
+    std::for_each(kinds_begin(theory), kinds_end(theory), writer);
+    std::for_each(  ops_begin(theory),   ops_end(theory), writer);
     return o;
   }
 
@@ -1012,13 +1013,13 @@ namespace ceta {
   ostream& operator<<(ostream& o, const ta_t& ta) {
     o << theory(ta);
     decl_writer writer(&o, &theory(ta));
-    for_each(states_begin(ta), states_end(ta), writer);
+    std::for_each(states_begin(ta), states_end(ta), writer);
     theory_t::kind_iterator k_begin = kinds_begin(theory(ta));
     theory_t::kind_iterator k_end   =   kinds_end(theory(ta));
     for (theory_t::kind_iterator i = k_begin; i != k_end; ++i)
       writer(predicate(ta, *i));
-    for_each(erules_begin(ta), erules_end(ta), writer);
-    for_each( rules_begin(ta),  rules_end(ta), writer);
+    std::for_each(erules_begin(ta), erules_end(ta), writer);
+    std::for_each( rules_begin(ta),  rules_end(ta), writer);
     return o;
   }
 }

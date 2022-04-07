@@ -38,7 +38,7 @@ private:
   counter_ac_explorer_t(const counter_ac_explorer_t&);
   counter_ac_explorer_t& operator=(const counter_ac_explorer_t&);
 
-  boost::shared_ptr<counter_ac_impl_t> impl_;
+  std::shared_ptr<counter_ac_impl_t> impl_;
 };
 }
 

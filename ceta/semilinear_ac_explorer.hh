@@ -40,7 +40,7 @@ namespace ceta {
     semilinear_ac_explorer_t(const semilinear_ac_explorer_t&);
     semilinear_ac_explorer_t& operator=(const semilinear_ac_explorer_t&);
   
-    boost::shared_ptr<semilinear_ac_impl_t> impl_;
+    std::shared_ptr<semilinear_ac_impl_t> impl_;
   };
 }
 

@@ -234,7 +234,7 @@ namespace closure {
           const state_t& lhs1 = lhs_state(rule, 0);
           const state_t& lhs2 = lhs_state(rule, 1);
           const state_t& rhs1 = rhs(rule);
-          boost::optional<op_t> id = id_symbol(op_axioms);
+          std::optional<op_t> id = id_symbol(op_axioms);
 
           switch (id_type(op_axioms)) {
           case id_none:

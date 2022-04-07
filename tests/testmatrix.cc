@@ -2,16 +2,15 @@
 #include <stdexcept>
 #include <vector>
 
-
-#include "boost/rational.hpp"
 #include "matrix.hh"
 #include "writer.hh"
+#include "rational.hh"
 
 using namespace ceta;
 using namespace std;
 
-typedef boost::rational<long long> rational;
-using boost::gcd;
+using rational = ceta::rational_t<long long>;
+using std::gcd;
 
 void error(const string& msg) {
   *(static_cast<int*>(NULL)) = 1;

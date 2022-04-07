@@ -58,7 +58,7 @@ namespace counter {
     }
 
     bool is_terminal(void) const {
-      return boost::get<term_t>(&data_) != NULL;
+      return std::holds_alternative<term_t>(data_);
     }
 
     bool is_nonterminal(void) const {
@@ -67,7 +67,7 @@ namespace counter {
 
     const term_t& term(void) const {
       try {
-        return boost::get<term_t>(data_);
+        return std::get<term_t>(data_);
       } catch (...) {
         sig_error("bad_get");
       }
@@ -76,7 +76,7 @@ namespace counter {
     /** Returns state associated to symbol if this is a nonterminal. */
     const state_t& state(void) const {
       try {
-        return boost::get<state_t>(data_);
+        return std::get<state_t>(data_);
       } catch (...) {
         sig_error("bad_get");
       }
@@ -223,7 +223,7 @@ namespace counter {
       if (min_potential_ > max_allowed_value())
         sig_error("Min potential out of range");
     }
-    boost::variant<state_t, term_t> data_;
+    std::variant<state_t, term_t> data_;
     /** Number of times symbol appears in lhs of a rule. */
     int lhs_sum_;
     /** Number of times symbol appears in rhs of a rule. */
@@ -489,7 +489,7 @@ namespace counter {
     }
 
     /** Returns state used in initial rule if any. */
-    const boost::optional<state_t>& accepting_state(void) const {
+    const std::optional<state_t>& accepting_state(void) const {
       return accepting_state_;
     }
 
@@ -677,7 +677,7 @@ namespace counter {
     reachable_map_t reachable_map_;
     used_rules_t used_rules_;
     bool used_initial_rule_;
-    boost::optional<state_t> accepting_state_;
+    std::optional<state_t> accepting_state_;
   };
 
   std::ostream& operator<<(std::ostream& o, const counter_t& c) {
@@ -762,7 +762,7 @@ namespace counter {
     void add(const counter_t* c) {
       // If reaching the counter used an initial rule.
       if (c->used_initial_rule()) {
-        const boost::optional<state_t>& state = c->accepting_state();
+        const std::optional<state_t>& state = c->accepting_state();
         // This may add a new accepting state.
         if (state) accepting_states_.insert(*state);
       } else {

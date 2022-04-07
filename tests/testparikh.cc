@@ -4,13 +4,11 @@
 #include <list>
 #include <vector>
 
-#include <boost/assign/list_of.hpp>
 #include "parikh.hh"
 #include "sls.hh"
 #include "writer.hh"
 
 using namespace std;
-using boost::assign::list_of;
 using namespace ceta;
 using namespace ceta::cfg;
 

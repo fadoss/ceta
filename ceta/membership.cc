@@ -216,7 +216,7 @@ op_parser_t* create_parser(const ta_t& ta,
 const std::set<state_t>
 reachable_states(const ta_t& ta, const term_t& term) {
   closure_t closure(ta);
-  typedef boost::shared_ptr<op_parser_t> parser_ptr_t;
+  typedef std::shared_ptr<op_parser_t> parser_ptr_t;
   std::vector<parser_ptr_t> parsers_;
   parsers_.push_back(parser_ptr_t(create_parser(theory(ta), closure, term)));
   std::set<state_t> result;

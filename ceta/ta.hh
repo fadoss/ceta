@@ -91,10 +91,10 @@
 #include <string>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/tuple/tuple.hpp>
-#include <boost/variant.hpp>
+#include <optional>
+#include <memory>
+#include <tuple>
+#include <variant>
 
 #include <ceta/export.h>
 
@@ -110,7 +110,7 @@ namespace ceta {
   private:
     friend const std::string& name(const kind_t& kind);
     /** Pointer to name. */
-    boost::shared_ptr<std::string> name_;
+    std::shared_ptr<std::string> name_;
   };
   /**
    * Returns name of kind.
@@ -185,9 +185,9 @@ namespace ceta {
     friend bool operator==(const op_t& lhs, const op_t& rhs);
     friend bool operator<( const op_t& lhs, const op_t& rhs);
     /** Implementation type. */
-    typedef boost::tuple<std::string, std::vector<kind_t>, kind_t> impl_t;
+    typedef std::tuple<std::string, std::vector<kind_t>, kind_t> impl_t;
     /** Pointer to implementation. */
-    boost::shared_ptr<impl_t> impl_;
+    std::shared_ptr<impl_t> impl_;
   };
   /**
    * Returns the name of this operator.
@@ -195,7 +195,7 @@ namespace ceta {
    */
   inline
   const std::string& name(const op_t& op) {
-    return op.impl_->get<0>();
+    return std::get<0>(*op.impl_);
   }
   /**
    * Returns iterator that points to first input kind of the operator.
@@ -203,7 +203,7 @@ namespace ceta {
    */
   inline
   const op_t::input_iterator inputs_begin(const op_t& op) {
-    return op.impl_->get<1>().begin();
+    return std::get<1>(*op.impl_).begin();
   }
   /**
    * Returns iterator that points one past the last input kind of the
@@ -212,7 +212,7 @@ namespace ceta {
    */
   inline
   const op_t::input_iterator inputs_end(const op_t& op) {
-    return op.impl_->get<1>().end();
+    return std::get<1>(*op.impl_).end();
   }
   /**
    * Returns the output kind of this operator.
@@ -220,7 +220,7 @@ namespace ceta {
    */
   inline
   const kind_t& output(const op_t& op) {
-    return op.impl_->get<2>();
+    return std::get<2>(*op.impl_);
   }
   /**
    * Returns true if lhs is the same operator as rhs.
@@ -350,7 +350,7 @@ namespace ceta {
     friend bool is_assoc(const axiom_set_t& axiom);
     friend bool is_comm(const axiom_set_t& axiom);
     friend id_type_t id_type(const axiom_set_t& axiom);
-    friend const boost::optional<op_t>& id_symbol(const axiom_set_t& axiom);
+    friend const std::optional<op_t>& id_symbol(const axiom_set_t& axiom);
     friend const axiom_set_t& none();
     friend const axiom_set_t& assoc();
     friend const axiom_set_t& comm();
@@ -359,8 +359,8 @@ namespace ceta {
     friend const axiom_set_t id(const op_t& id);
     /** Constructs a new axiom set. */
     axiom_set_t(bool is_assoc, bool is_comm, id_type_t id_type = id_none,
-                const boost::optional<op_t>& id_symbol
-                    = boost::optional<op_t>())
+                const std::optional<op_t>& id_symbol
+                    = std::optional<op_t>())
       : is_assoc_(is_assoc),
         is_comm_(is_comm),
         id_type_(id_type),
@@ -369,7 +369,7 @@ namespace ceta {
     bool is_assoc_;
     bool is_comm_;
     id_type_t id_type_;
-    boost::optional<op_t> id_symbol_;
+    std::optional<op_t> id_symbol_;
   };
   /**
    * Returns true if attributes contain associativity.
@@ -400,7 +400,7 @@ namespace ceta {
    * \relates axiom_set_t
    */
   inline
-  const boost::optional<op_t>& id_symbol(const axiom_set_t& axiom) {
+  const std::optional<op_t>& id_symbol(const axiom_set_t& axiom) {
     return axiom.id_symbol_;
   }
   /**
@@ -576,7 +576,7 @@ namespace ceta {
             const theory_t& theory, const op_t& id_symbol);
     friend bool is_identity(const theory_t& theory, const op_t& id_symbol);
     /** Pointer to implementation. */
-    boost::shared_ptr<theory_impl> impl_;
+    std::shared_ptr<theory_impl> impl_;
   };
   /**
    * Returns set of axioms for operator.
@@ -715,7 +715,7 @@ namespace ceta {
     term_t(const theory_t& theory, const op_t& op, I sub_begin, I sub_end)
       : impl_(new impl_t(op, std::vector<term_t>())) {
       axiom_set_t cur_axioms = axioms(theory, op);
-      const boost::optional<op_t>& id_sym = id_symbol(cur_axioms);
+      const std::optional<op_t>& id_sym = id_symbol(cur_axioms);
 
       std::vector<term_t>& subterms = impl_->second;
       if (is_assoc(cur_axioms)) {
@@ -778,7 +778,7 @@ namespace ceta {
     /** Implementation type. */
     typedef std::pair<op_t, std::vector<term_t> > impl_t;
     /** Pointer to implementation. */
-    boost::shared_ptr<impl_t> impl_;
+    std::shared_ptr<impl_t> impl_;
   };
   /**
    * Returns root symbol of term.
@@ -867,9 +867,9 @@ namespace ceta {
     friend bool operator==(const state_t& lhs, const state_t& rhs);
     friend bool operator<(const state_t& lhs, const state_t& rhs);
     /** Implementation type. */
-    typedef boost::tuple<kind_t, std::string> impl_t;
+    typedef std::tuple<kind_t, std::string> impl_t;
     /** Pointer to implementation. */
-    boost::shared_ptr<impl_t> impl_;
+    std::shared_ptr<impl_t> impl_;
   };
   /**
    * Returns the kind of this state.
@@ -877,7 +877,7 @@ namespace ceta {
    */
   inline
   const kind_t& kind(const state_t& state) {
-    return state.impl_->get<0>();
+    return std::get<0>(*state.impl_);
   }
   /**
    * Returns the name of this state.
@@ -885,7 +885,7 @@ namespace ceta {
    */
   inline
   const std::string& name(const state_t& state) {
-    return state.impl_->get<1>();
+    return std::get<1>(*state.impl_);
   }
   /**
    * Returns true if lhs equals rhs.
@@ -961,7 +961,7 @@ namespace ceta {
     state_predicate_t(const and_predicate_t& p);
     /** Constructs disjunction predicate. */
     state_predicate_t(const or_predicate_t& p);
-    typedef boost::variant<bool, state_t, not_predicate_t, and_predicate_t,
+    typedef std::variant<bool, state_t, not_predicate_t, and_predicate_t,
             or_predicate_t> variant_t;
     typedef std::pair<kind_t, variant_t> impl_t;
 
@@ -991,7 +991,7 @@ namespace ceta {
                     const state_predicate_t& rhs);
 
     /** Implementation of predicate. */
-    boost::shared_ptr<impl_t> impl_;
+    std::shared_ptr<impl_t> impl_;
   };
   /** Predicate with a "not" operator on top. */
   struct not_predicate_t {
@@ -1071,7 +1071,7 @@ namespace ceta {
   template<typename Visitor>
   typename Visitor::result_type
     apply_visitor(Visitor& visitor, const state_predicate_t& pred) {
-    return boost::apply_visitor(visitor, pred.impl_->second);
+    return std::visit(visitor, pred.impl_->second);
   }
   /**
    * Passes components of predicate to visitor.  A predicate visitor is an
@@ -1083,7 +1083,7 @@ namespace ceta {
   template<typename Visitor>
   typename Visitor::result_type
     apply_visitor(const Visitor& visitor, const state_predicate_t& pred) {
-    return boost::apply_visitor(visitor, pred.impl_->second);
+    return std::visit(visitor, pred.impl_->second);
   }
   /**
    * Returns complement of predicate.
@@ -1490,7 +1490,7 @@ namespace ceta {
     friend const rule_iterator rules_end(const ta_t& ta);
     friend void add_rule(ta_t& ta, const rule_t& rule);
     /** Pointer to implementation. */
-    boost::shared_ptr<ta_impl> impl_;
+    std::shared_ptr<ta_impl> impl_;
   };
   /**
    * Returns theory of automaton.

@@ -25,8 +25,7 @@
 // subset of states when viewed by some other symbol.
 // - Can I guarantee finding an accepting tree if one exists?
 
-#include <boost/none.hpp>
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 #include "earley.hh"
 #include "learn.hh"
@@ -543,7 +542,7 @@ namespace cfg {
      * terminal.  This will either return the new subset or identify a tree
      * node that should be split.
      */
-    boost::variant<cfg_subset_t<Terminal, Nonterminal>, split_t>
+    std::variant<cfg_subset_t<Terminal, Nonterminal>, split_t>
     explore(const cfg_tree_map_t<Terminal, Nonterminal>& map,
             const Terminal& terminal) const {
       // Construct a new subset.
@@ -556,7 +555,7 @@ namespace cfg {
       generated_set_t gen =
               parse(map.rules(), result.trace_, found.begin(), found.end());
 
-      typedef boost::optional<split_t> opt_split_t;
+      typedef std::optional<split_t> opt_split_t;
 
       // For each primary node
       typedef typename primary_t::const_iterator pri_iter;
@@ -630,7 +629,7 @@ namespace cfg {
      * @param gen Generated set for terminal.
      */
     static
-    boost::optional<split_t>
+    std::optional<split_t>
     check_next_node(const cfg_tree_t<Terminal, Nonterminal>& tree,
                     const std::vector<Terminal>& prev_path,
                     size_t prev_node,
@@ -659,7 +658,7 @@ namespace cfg {
         return split_t(nt, prev_node, d, sep_pair.second,
                        prev_path, prev_trace);
       }
-      return boost::none;
+      return std::nullopt;
     }
 
     /**
@@ -667,7 +666,7 @@ namespace cfg {
      * suffix equals cur_node.
      */
     static
-    boost::optional<split_t>
+    std::optional<split_t>
     check_suffixes(const cfg_tree_t<Terminal, Nonterminal>& tree,
                    const std::vector<Terminal>& prev_path,
                    size_t prev_node,
@@ -688,13 +687,13 @@ namespace cfg {
         earley_trace_t<Nonterminal> suffix_trace = trace.suffix(cur_start);
         // Determine if trace recognized nonterminal at start index.
         // Check suffix
-        typedef boost::optional<split_t> opt_split_t;
+        typedef std::optional<split_t> opt_split_t;
         opt_split_t result =
           check_next_node(tree, suffix_path, prev_node, terminal,
                           cur_node, suffix_trace, suffix_accepts);
         if (result) return result;
       }
-      return boost::none;
+      return std::nullopt;
     }
 
     /** Constructs a subset with the given trace. */
@@ -1076,13 +1075,13 @@ namespace cfg {
         return;
       // Perform checked explore
       typedef dfa_split_t<Terminal, Nonterminal> split_t;
-      typedef boost::variant<subset_t, split_t> variant_t;
+      typedef std::variant<subset_t, split_t> variant_t;
       const subset_t& cur_subset = subsets_[queue_.next_subset()];
 
       variant_t var = cur_subset.explore(tree_map_, queue_.next_terminal());
 
       // If exploration induces split
-      if (split_t* cur_split = boost::get<split_t>(&var)) {
+      if (split_t* cur_split = std::get_if<split_t>(&var)) {
         const Nonterminal& cur_nt = cur_split->nonterminal;
         // Perform split on tree.
         tree_t& cur_tree = tree_map_[cur_nt];
@@ -1093,7 +1092,7 @@ namespace cfg {
                              cur_split->trace);
         recompute_after_split(cur_nt, cur_split->node);
       } else { // Exploration yielded new subset.
-        const subset_t& new_subset = boost::get<subset_t>(var);
+        const subset_t& new_subset = std::get<subset_t>(var);
         std::pair<size_t, bool> add_result = add_subset(new_subset);
         queue_.set_next_explored(add_result.first);
       }

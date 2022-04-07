@@ -26,8 +26,8 @@
 
 #include <map>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/optional/optional.hpp>
+#include <memory>
+#include <optional>
 
 #include "cfg.hh"
 #include "sls.hh"
@@ -112,7 +112,7 @@ namespace cfg {
     }
 
     /** Returns nonterminal appearing in a leaf if any. */
-    const boost::optional<Nonterminal>& nonterminal_leaf(void) const {
+    const std::optional<Nonterminal>& nonterminal_leaf(void) const {
       return impl_->nonterminal_leaf;
     }
 
@@ -170,7 +170,7 @@ namespace cfg {
        */
       bool pumped;
       /** Nonterminal appearing in a leaf if any. */
-      boost::optional<Nonterminal> nonterminal_leaf;
+      std::optional<Nonterminal> nonterminal_leaf;
       /** Set of nonterminals appearing in branches. */
       std::set<Nonterminal> in_tree;
       /**
@@ -180,7 +180,7 @@ namespace cfg {
       std::map<size_t, size_t> leaf_counts;
     };
 
-    boost::shared_ptr<impl_t> impl_;
+    std::shared_ptr<impl_t> impl_;
   };
 
   template<typename Nonterminal>

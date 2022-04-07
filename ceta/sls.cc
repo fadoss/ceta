@@ -25,7 +25,7 @@
 #include <set>
 #include <stdexcept>
 
-#include <boost/rational.hpp>
+#include "rational.hh"
 
 #include "sls.hh"
 #include "ldsolver.hh"
@@ -35,9 +35,9 @@
 
 using namespace ceta;
 using namespace std;
-typedef boost::rational<long long> rational;
+using rational = ceta::rational_t<long long>;
 
-using boost::gcd;
+using std::gcd;
 
 namespace ceta {
   class lsg_impl {
@@ -590,9 +590,9 @@ namespace ceta {
 namespace ceta {
 namespace impl {
   static rational gcd(const rational& x, const rational& y) {
-    long long d = boost::gcd(x.denominator(), y.denominator());
+    auto d = std::gcd(x.denominator(), y.denominator());
 
-    return rational(boost::gcd(x.numerator(), y.numerator()),
+    return rational(std::gcd(x.numerator(), y.numerator()),
                     (x.denominator() / d) * y.denominator());
   }
 
@@ -808,7 +808,7 @@ namespace impl {
         long long r(std::abs(
           LU<rational>(n-1, n-1,
             minor_matrix<M>(m, ir, ic)).det().numerator()));
-        div = boost::gcd(div, r);
+        div = std::gcd(div, r);
       }
     }
     return num / div;

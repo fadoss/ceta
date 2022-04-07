@@ -18,7 +18,7 @@
 #include "matrix.hh"
 
 #include <map>
-#include <boost/rational.hpp>
+#include "rational.hh"
 
 //#define MAUDE_SOLVER
 //#define MAUDE_USE_GCD
@@ -35,7 +35,7 @@
 using namespace ceta;
 using namespace std;
 
-typedef boost::rational<long long> rational;
+using rational = ceta::rational_t<long long>;
 
 /**
  * Returns true if v is a vector of only zeros

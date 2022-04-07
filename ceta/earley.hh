@@ -21,7 +21,7 @@
 #include <set>
 #include <stdexcept>
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "qcontainer.hh"
 #include "trans_closure.hh"
@@ -220,7 +220,7 @@ namespace cfg {
    */
   template<typename Nonterminal>
   struct prefix_pair_t {
-    typedef boost::shared_ptr< earley_set_t<Nonterminal> > set_ptr;
+    typedef std::shared_ptr< earley_set_t<Nonterminal> > set_ptr;
 
     prefix_pair_t(const set_ptr& aset, Nonterminal ant)
       : set(aset),
@@ -249,7 +249,7 @@ namespace cfg {
   template<typename Nonterminal>
   class pending_map_t {
   public:
-    void add(const boost::shared_ptr< earley_set_t<Nonterminal> >& set,
+    void add(const std::shared_ptr< earley_set_t<Nonterminal> >& set,
              const Nonterminal& lhs,
              const Nonterminal& second_arg) {
       map_[second_arg].insert(prefix_pair_t<Nonterminal>(set, lhs));
@@ -288,7 +288,7 @@ namespace cfg {
   public:
     typedef std::set<prefix_pair_t<Nonterminal> > pending_set_t;
     //typedef std::map<Nonterminal, pending_set_t> pending_map_t;
-    typedef boost::shared_ptr<earley_set_t<Nonterminal> > set_ptr;
+    typedef std::shared_ptr<earley_set_t<Nonterminal> > set_ptr;
 
     earley_set_t(const std::set<Nonterminal>& searches)
       : searches_(searches) {
@@ -366,7 +366,7 @@ namespace cfg {
   template<typename Nonterminal>
   class earley_trace_t {
   public:
-    typedef boost::shared_ptr<earley_set_t<Nonterminal> > set_ptr;
+    typedef std::shared_ptr<earley_set_t<Nonterminal> > set_ptr;
 
     /**
      * Construct an empty earley trace that starts searching for all
@@ -474,7 +474,7 @@ namespace cfg {
     typedef typename nt_set_t::const_iterator set_iter;
     typedef typename nt_set_map_t::const_iterator map_iter;
 
-    boost::shared_ptr< earley_set_t<Nonterminal> > start_set
+    std::shared_ptr< earley_set_t<Nonterminal> > start_set
           = parsed_string.set;
     const Nonterminal& gen_nt = parsed_string.nt;
     const nt_set_map_t& map = rules.followups(gen_nt);
@@ -509,7 +509,7 @@ namespace cfg {
   template<typename Nonterminal, typename NonterminalIterator>
   void scan(ceta::impl::qcontainer_t<
                std::set< prefix_pair_t<Nonterminal> > >& gen,
-            const boost::shared_ptr<earley_set_t<Nonterminal> >& prev_set,
+            const std::shared_ptr<earley_set_t<Nonterminal> >& prev_set,
             const std::set<Nonterminal>& prev_searches,
             NonterminalIterator found_begin,
             NonterminalIterator found_end) {
@@ -534,7 +534,7 @@ namespace cfg {
     typedef prefix_pair_t<Nonterminal> pre_pair_t;
     typedef std::set<pre_pair_t> gen_set_t;
     typedef earley_set_t<Nonterminal> set_t;
-    typedef boost::shared_ptr<set_t > set_ptr;
+    typedef std::shared_ptr<set_t > set_ptr;
 
     ceta::impl::qcontainer_t<gen_set_t> gen;
     // Get most recent trace set.

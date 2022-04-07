@@ -1,4 +1,4 @@
-AC_INIT(ceta, alpha4, jhendrix@uiuc.edu)
+AC_INIT([ceta],[alpha4],[jhendrix@uiuc.edu])
 AC_LANG(C++)
 
 dnl Init automake to not require GNU files (NEWS and Changelog), enable all
@@ -31,9 +31,6 @@ AC_ARG_VAR([DOT], [Dot command (optional)])
 AC_PATH_PROGS([DOT], [dot], [], [$PATH])
 AM_CONDITIONAL(HAVE_DOT, test -x "$DOT")
 
-dnl Check for Boost
-AC_CHECK_HEADERS(boost/shared_ptr.hpp,, AC_MSG_ERROR(Cannot find Boost))
-
 dnl Check for C++ requirements
 AC_C_CONST
 AC_C_INLINE
@@ -43,15 +40,13 @@ AC_FUNC_ERROR_AT_LINE
 
 # Add option to enable debugging.
 AC_ARG_ENABLE(debug,
-	      AC_HELP_STRING([--enable-debug],
-                             [no optimization, dump routines [default=no]]),
+	      AS_HELP_STRING([--enable-debug],[no optimization, dump routines [default=no]]),
 	      [DEBUGGING=$enableval],
 	      [DEBUGGING=no])
 
 # Add option to control level of detail in documentation
 AC_ARG_ENABLE(dev-doc,
-              AC_HELP_STRING([--enable-dev-doc],
-         [Build more detailed documentation of implementation [default=no]]),
+              AS_HELP_STRING([--enable-dev-doc],[Build more detailed documentation of implementation [default=no]]),
          [dev_doc=$enableval],
          [dev_doc=no])
 AM_CONDITIONAL(BUILD_DEV_DOC, test "x$dev_doc" = "xyes")

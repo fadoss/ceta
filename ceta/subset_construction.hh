@@ -52,7 +52,7 @@ namespace ceta {
     friend
     const std::set<state_t>& reachable_set(const test_result_t& result);
     /** Pointer to accepted term or null if the property is satisfied. */
-    boost::optional< std::pair<term_t, set_t> > impl_;
+    std::optional< std::pair<term_t, set_t> > impl_;
   };
 
   /**
@@ -107,7 +107,7 @@ namespace ceta {
     /** Disable assignment. */
     subset_constructor_t& operator=(const subset_constructor_t&);
     /** Pointer to implementation. */
-    boost::shared_ptr<subset_constructor_impl> impl_;
+    std::shared_ptr<subset_constructor_impl> impl_;
   };
 
   /**

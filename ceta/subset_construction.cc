@@ -126,7 +126,7 @@ namespace ceta {
 
       typedef explorer_list_t::iterator iter;
       for (iter i = explorers_.begin(); i != explorers_.end(); ++i) {
-        boost::shared_ptr<op_explorer_t>& cur_explorer = *i;
+        std::shared_ptr<op_explorer_t>& cur_explorer = *i;
         bool prev_complete = cur_explorer->is_complete();
         (*i)->add_reachable(set, term);
         // If i was previously complete and is not now.
@@ -141,7 +141,7 @@ namespace ceta {
     subset_constructor_impl(const subset_constructor_impl&);
     /** Disable assignment. */
     subset_constructor_impl& operator=(const subset_constructor_impl&);
-    typedef boost::shared_ptr<op_explorer_t> explorer_ptr;
+    typedef std::shared_ptr<op_explorer_t> explorer_ptr;
     typedef std::pair<std::set<state_t>, term_t> reachable_t;
     typedef std::list<explorer_ptr> explorer_list_t;
 

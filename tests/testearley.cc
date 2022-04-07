@@ -4,12 +4,9 @@
 #include <list>
 #include <stdexcept>
 
-#include <boost/assign/list_of.hpp>
-
 using namespace std;
 using namespace ceta;
 using namespace ceta::cfg;
-using boost::assign::list_of;
 
 void error(const string& msg) {
   cerr << msg << endl;
@@ -55,8 +52,8 @@ void test_simple() {
   string qb[] = {"qb"};
   trules.add_terminal('a', qa, qa + 1);
   trules.add_terminal('b', qb, qb + 1);
-  check_set(trules.generators('a'), list_of<string>("qa"));
-  check_set(trules.generators('b'), list_of<string>("qb"));
+  check_set(trules.generators('a'), {"qa"});
+  check_set(trules.generators('b'), {"qb"});
 
   string test = "aaabbb";
   if (!member(rules, trules, string("f"), test.begin(), test.end()))

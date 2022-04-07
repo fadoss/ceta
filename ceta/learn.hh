@@ -23,10 +23,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/tuple/tuple.hpp>
-#include <boost/variant.hpp>
-#include <boost/weak_ptr.hpp>
+#include <memory>
+#include <tuple>
+#include <variant>
 
 #include <iostream>
 using namespace std;
@@ -65,7 +64,7 @@ private:
   /** Type of implementation for nonempty cons list. */
   typedef std::pair<Alphabet, cons_list_t<Alphabet> > impl_t;
   /** Pointer to implementation. */
-  boost::shared_ptr<impl_t> impl_;
+  std::shared_ptr<impl_t> impl_;
 };
 
 /** Writes list to output stream. */
@@ -112,28 +111,28 @@ public:
   /** Return true if this node is a leaf. */
   bool is_leaf(size_t node) const {
     if (!in_range(node)) throw std::logic_error("Index is not a node.");
-    return boost::get<leaf_t>(&(nodes_[node].data)) != NULL;
+    return std::holds_alternative<leaf_t>(nodes_[node].data);
   }
 
   /** Returns label on a leaf. */
   const LeafLabel& leaf_label(size_t leaf) const {
     if (!in_range(leaf)) throw std::logic_error("Index is not a node.");
     if (!is_leaf(leaf)) throw std::logic_error("Node is not a leaf.");
-    return boost::get<leaf_t>(nodes_[leaf].data).label;
+    return std::get<leaf_t>(nodes_[leaf].data).label;
   }
 
   /** Returns label on a branch. */
   const BranchLabel& branch_label(size_t branch) const {
     if (!in_range(branch)) throw std::logic_error("Index is not a node.");
     if (is_leaf(branch)) throw std::logic_error("Node is not a branch.");
-    return boost::get<branch_t>(nodes_[branch].data).label;
+    return std::get<branch_t>(nodes_[branch].data).label;
   }
 
   /** Returns accepting child of branch. */
   size_t accept_child(size_t branch) const {
     if (!in_range(branch)) throw std::logic_error("Index is not a node.");
     if (is_leaf(branch)) throw std::logic_error("Node is not a branch.");
-    return boost::get<branch_t>(nodes_[branch].data).child;
+    return std::get<branch_t>(nodes_[branch].data).child;
   }
 
   /** Returns rejecting child of branch. */
@@ -233,7 +232,7 @@ private:
         data(leaf_t(label)) {
     }
     size_t parent;
-    boost::variant<branch_t, leaf_t> data;
+    std::variant<branch_t, leaf_t> data;
   };
   /** Vector of nodes in tree. */
   std::vector<node_t> nodes_;
