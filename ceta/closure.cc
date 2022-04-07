@@ -313,16 +313,16 @@ namespace closure {
       for (crule_iter i = crules_.begin(); i != crules_.end(); ++i) {
         std::set<state_t>& states = i->second;
         typedef std::set<state_t>::iterator iter;
-        iter i = states.begin();
-        while (i != states.end()) {
+        iter j = states.begin();
+        while (j != states.end()) {
           // Erase *i if it is not a representative.
-          if (representatives_.count(*i) > 0) {
-            iter next = i;
+          if (representatives_.count(*j) > 0) {
+            iter next = j;
             ++next;
-            states.erase(i);
-            i = next;
+            states.erase(j);
+            j = next;
           } else {
-            ++i;
+            ++j;
           }
         }
       }

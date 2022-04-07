@@ -124,8 +124,8 @@ namespace cfg {
     }
 
     /** Returns number of occurances of each terminal in leaf. */
-    std::vector<size_t> leaf_counts(size_t terminal_count) const {
-      std::vector<size_t> result(terminal_count, 0);
+    std::vector<unsigned> leaf_counts(size_t terminal_count) const {
+      std::vector<unsigned> result(terminal_count, 0);
       typedef std::map<size_t, size_t>::const_iterator iter;
       iter leaf_counts_end = impl_->leaf_counts.end();
       for (iter i = impl_->leaf_counts.begin(); i != leaf_counts_end; ++i)
@@ -409,7 +409,7 @@ namespace cfg {
           // Add constants for current nonterminal and branch set.
           const tree_vector_t& c = trees_.constants(cur_nt, *ib);
           for (tree_iter i = c.begin(); i != c.end(); ++i) {
-            std::vector<size_t> leafc = i->leaf_counts(terminal_count_);
+            std::vector<unsigned> leafc = i->leaf_counts(terminal_count_);
             group.insert_constant(&leafc[0]);
           }
           // Add periods for each nonterminal in branch set.
@@ -418,7 +418,7 @@ namespace cfg {
           for (nt_iter ip = ib->begin(); ip != p_end; ++ip) {
             const tree_vector_t& p = trees_.periods(*ip);
             for (tree_iter i = p.begin(); i != p.end(); ++i) {
-              std::vector<size_t> leafc = i->leaf_counts(terminal_count_);
+              std::vector<unsigned> leafc = i->leaf_counts(terminal_count_);
               group.insert_period(&leafc[0]);
             }
           }

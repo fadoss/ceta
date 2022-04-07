@@ -112,7 +112,7 @@ namespace ceta {
      * Returns true if the periods in x are strictly less than the periods
      * in y.
      */
-    bool operator()(const linear_set_group& x, const linear_set_group& y) {
+    bool operator()(const linear_set_group& x, const linear_set_group& y) const {
       return x.periods() < y.periods();
     }
   };

@@ -58,13 +58,19 @@ namespace impl {
     strict_lexicographical_ordering(size_t n) : n_(n) {}
 
     template<class I>
-    bool operator()(I x, I y) {
+    bool operator()(I x, I y) const {
       return std::lexicographical_compare(x, x + n_, y, y + n_);
     }
   private:
     size_t n_;
   };
 
+  // Next aligned offset for the given alignment
+  constexpr ptrdiff_t aligned_offset(ptrdiff_t offset, size_t alignment) {
+    ptrdiff_t align_offset = (offset % alignment == 0) ? 0
+                               : (alignment - offset % alignment);
+    return offset + align_offset;
+  }
 
   class node_stack {
     // The node stack for solving a LD system with p equations and q
@@ -83,7 +89,7 @@ namespace impl {
         nc_(var_count),
         solution_offset_(sizeof(int) * eqn_count),
         frozen_offset_(solution_offset_ + sizeof(unsigned) * var_count),
-        rank_offset_(frozen_offset_ +
+        rank_offset_(aligned_offset(frozen_offset_ +
                     // Compute size of frozen vars to align records on
                     // integer boundaries.  Note that sizeof(bool) is not
                     // necessarily 1, and on some architectures may be larger
@@ -91,7 +97,7 @@ namespace impl {
                     (sizeof(bool) < sizeof(int) ?
                       sizeof(int)
                           * (sizeof(bool) * var_count / sizeof(int) + 1) :
-                      sizeof(bool) * var_count)),
+                      sizeof(bool) * var_count), alignof(size_t))),
         node_size_(rank_offset_ + sizeof(size_t)),
         stack_(new char[node_size_ * (var_count + 1)]),
         next_node_(stack_) {

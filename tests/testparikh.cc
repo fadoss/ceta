@@ -96,7 +96,7 @@ void test_mset() {
   if (s.size() != 10) error("Incorrect size");
   if (s[cNat].dim() != 3) error("Incorrect terminal count");
 
-  if (is_empty(s[cMSet])) error("MSet empty");
+  if (ceta::is_empty(s[cMSet])) error("MSet empty");
 
   if (s[cMSet].begin()->periods().size() == 0) error("MSet finite");
 

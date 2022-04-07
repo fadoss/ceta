@@ -57,7 +57,7 @@ void testSLS(void) {
   cerr << "min_size " << min_size_set(3, 2) << endl;
 
   if (complement(complete_set(3)).dim() != 3) error("complement3dim");
-  if (!is_empty(complement(complete_set(3)))) error("complement3empty");
+  if (!ceta::is_empty(complement(complete_set(3)))) error("complement3empty");
 
   semilinear_set s5(complement(s1));
 

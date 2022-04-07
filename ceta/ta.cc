@@ -39,42 +39,6 @@ namespace ceta {
       throw std::logic_error(msg);
     }
 
-    /**
-     * Returns true if distance(first1, last1) == distance(first2, last2) and
-     * elements in range [first1 ... last1) and [first2 ... last2) are
-     * identical.
-     */
-    template<typename I1, typename I2>
-    static
-    bool equal(I1 first1, I1 last1, I2 first2, I2 last2) {
-      while ((first1 != last1) && (first2 != last2)) {
-        if (*first1 != *first2)
-          return false;
-        ++first1;
-        ++first2;
-      }
-      // Check that both iterators reached end of list.
-      return (first1 == last1) && (first2 == last2);
-    }
-
-    /**
-     * Returns true if iterators point to ranges of equal length and
-     * predicated is true for each consequentify pair of elements in the
-     * ranges.
-     */
-    template<typename I1, typename I2, typename P>
-    static
-    bool equal(I1 first1, I1 last1, I2 first2, I2 last2, P predicate) {
-      while ((first1 != last1) && (first2 != last2)) {
-        if (!predicate(*first1, *first2))
-          return false;
-        ++first1;
-        ++first2;
-      }
-      // Check that both iterators reached end of list.
-      return (first1 == last1) && (first2 == last2);
-    }
-
     /** Clones pointer if necessary to insure this is not shared. */
     template<typename T>
     static

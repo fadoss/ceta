@@ -682,7 +682,7 @@ namespace ceta {
    * Checks that kinds are equal.
    * \relates term_t
    */
-  void check_equal(const kind_t& kind, const kind_t& kind) CETA_DSO_EXPORT;
+  void check_equal(const kind_t& kind1, const kind_t& kind2) CETA_DSO_EXPORT;
 
   class term_t;
 

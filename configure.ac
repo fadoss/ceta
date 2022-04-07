@@ -81,7 +81,7 @@ if (test "$DEBUGGING" = no) then
   fi
 
   if test "$GXX" = yes; then
-    OFLAGS="-O2 -fomit-frame-pointer"
+    OFLAGS="-O -fomit-frame-pointer"
   else
     OFLAGS="-O"
   fi

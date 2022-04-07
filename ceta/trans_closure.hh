@@ -59,7 +59,6 @@ template<typename E>
 void add_and_close(const std::map<E, std::set<E> >& edge_map,
                    std::set<E>& set,
                    const E& e) {
-  typedef typename std::map<E, std::set<E> >::const_iterator map_iter;
   bool added = set.insert(e).second;
   if (added) {
     std::vector<E> stack;
