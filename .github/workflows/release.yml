@@ -1,0 +1,62 @@
+name: Build Ceta
+
+on:
+  push:
+    branches: [ 'build' ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Configure
+      run: |
+         autoreconf -i
+         CXXFLAGS="-std=c++17" ./configure --prefix=/
+    - name: Compile
+      run: make
+    - name: Package
+      run: |
+        mkdir -p installdir/lib
+        DESTDIR=installdir make install
+        cd installdir
+        strip lib/libceta.so.1
+        strip --strip-unneeded lib/libceta.a
+        tar -zcf ../libceta-linux64.tar.gz *
+    - name: Upload binaries
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        body: Binaries
+        files: libceta-linux64.tar.gz
+        tag_name: latest
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Configure
+      run: |
+         brew install automake
+         sed 's/-Wl,-soname,\$(CETA_SO_LIB)//' Makefile.am > Makefile.am.bak
+         sed 's/libceta.so.1/libceta.dylib/' Makefile.am.bak > Makefile.am
+         autoreconf -i
+         CXXFLAGS="-std=c++17" ./configure --prefix=/
+    - name: Compile
+      run: make
+    - name: Package
+      run: |
+        mkdir -p installdir/lib
+        DESTDIR=installdir make install
+        cd installdir
+        strip -ru lib/libceta.dylib
+        tar -zcf ../libceta-darwin64.tar.gz *
+    - name: Upload binaries
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        body: Binaries
+        files: libceta-darwin64.tar.gz
+        tag_name: latest
